@@ -1,0 +1,477 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ЧС-2026 — Розклад матчів</title>
+<style>
+:root { color-scheme: light; }
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #f0f4f8; color: #1a202c; min-height: 100vh; font-size: 14px; }
+
+.header { background: linear-gradient(135deg, #0f2d6b, #1d4ed8); color: white; padding: 14px 16px; text-align: center; }
+.header h1 { font-size: 19px; font-weight: 800; letter-spacing: 0.5px; }
+.header p { font-size: 12px; opacity: 0.85; margin-top: 3px; }
+#clock { font-weight: 700; font-size: 13px; }
+
+.status-bar { background: white; border-bottom: 1px solid #e2e8f0; padding: 5px 14px; display: flex; justify-content: space-between; align-items: center; font-size: 11px; color: #64748b; }
+.live-dot { display: inline-block; width:7px; height:7px; background:#ef4444; border-radius:50%; margin-right:5px; animation: blink 1.2s infinite; }
+@keyframes blink { 0%,100%{opacity:1} 50%{opacity:0.2} }
+
+.tabs { background: white; border-bottom: 2px solid #e2e8f0; display: flex; overflow-x: auto; }
+.tab { padding: 10px 16px; font-size: 13px; font-weight: 600; cursor: pointer; border-bottom: 2px solid transparent; margin-bottom: -2px; color: #64748b; white-space: nowrap; user-select: none; transition: color 0.15s; }
+.tab:hover { color: #1d4ed8; }
+.tab.active { color: #1d4ed8; border-bottom-color: #1d4ed8; }
+
+.page { display: none; }
+.page.active { display: block; }
+#today-page, #schedule-page, #groups-page, #knockout-page { max-height: calc(100vh - 112px); overflow-y: auto; }
+
+.day-header { padding: 7px 14px; background: #f8fafc; border-bottom: 1px solid #e2e8f0; border-top: 1px solid #e2e8f0; font-size: 11px; font-weight: 700; color: #1d4ed8; text-transform: uppercase; letter-spacing: 0.5px; position: sticky; top: 0; z-index: 5; }
+
+.match-row { display: flex; align-items: center; padding: 9px 12px; border-bottom: 1px solid #f1f5f9; background: white; gap: 6px; }
+.match-row:hover { background: #f8fafc; }
+
+.match-time { min-width: 50px; text-align: center; font-size: 13px; font-weight: 700; color: #374151; }
+.match-time.live-time { color: #ef4444; }
+.match-time.done-time { color: #9ca3af; font-size: 11px; font-weight: 500; }
+
+.teams-block { flex: 1; display: flex; align-items: center; gap: 4px; min-width: 0; }
+.team-side { flex: 1; display: flex; align-items: center; gap: 4px; min-width: 0; }
+.team-home { justify-content: flex-end; }
+.team-away { justify-content: flex-start; }
+.team-flag { font-size: 17px; flex-shrink: 0; line-height: 1; }
+.team-name { font-size: 12px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 82px; color: #111827; }
+
+.score-center { min-width: 54px; text-align: center; display: flex; align-items: center; justify-content: center; gap: 2px; }
+.score-num { font-size: 18px; font-weight: 800; color: #111827; min-width: 18px; text-align: center; }
+.score-sep { font-size: 14px; color: #6b7280; }
+.score-vs { font-size: 12px; color: #9ca3af; font-weight: 600; }
+
+.match-badge { min-width: 52px; text-align: right; }
+.group-badge { display: inline-block; background: #eff6ff; color: #1d4ed8; font-size: 10px; font-weight: 700; padding: 2px 6px; border-radius: 4px; }
+.round-badge { display: inline-block; background: #fef3c7; color: #d97706; font-size: 10px; font-weight: 700; padding: 2px 5px; border-radius: 4px; }
+.final-badge { display: inline-block; background: #fdf4ff; color: #9333ea; font-size: 10px; font-weight: 700; padding: 2px 6px; border-radius: 4px; }
+.live-badge { display: inline-block; background: #ef4444; color: white; font-size: 10px; font-weight: 700; padding: 2px 7px; border-radius: 10px; animation: blink 1.2s infinite; }
+
+/* Groups */
+.groups-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(255px, 1fr)); gap: 12px; padding: 12px; }
+.group-card { background: white; border-radius: 8px; overflow: hidden; border: 1px solid #e2e8f0; box-shadow: 0 1px 3px rgba(0,0,0,0.07); }
+.group-card-title { background: linear-gradient(135deg, #1e3a8a, #1d4ed8); color: white; padding: 8px 12px; font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; }
+.group-tbl { width: 100%; border-collapse: collapse; }
+.group-tbl th { padding: 5px 6px; font-size: 10px; font-weight: 600; color: #6b7280; text-transform: uppercase; background: #f9fafb; border-bottom: 1px solid #f1f5f9; text-align: center; }
+.group-tbl th:first-child { text-align: left; padding-left: 10px; }
+.group-tbl td { padding: 7px 6px; border-bottom: 1px solid #f1f5f9; text-align: center; font-size: 12px; }
+.group-tbl td:first-child { text-align: left; padding-left: 10px; }
+.group-tbl tr:last-child td { border-bottom: none; }
+.team-cell-g { display: flex; align-items: center; gap: 5px; }
+.pts-bold { font-weight: 800; color: #111827; }
+.row-q { background: #f0fdf4; }
+.row-p { background: #fffbeb; }
+
+/* Knockout */
+.ko-round-title { padding: 9px 14px; background: #f5f3ff; border-bottom: 1px solid #ede9fe; border-top: 1px solid #ede9fe; font-size: 11px; font-weight: 700; color: #7c3aed; text-transform: uppercase; letter-spacing: 0.5px; }
+
+.legend { padding: 10px 14px; font-size: 11px; color: #6b7280; background: white; border-top: 1px solid #e2e8f0; display: flex; gap: 16px; flex-wrap: wrap; }
+.legend span { display: flex; align-items: center; gap: 4px; }
+.leg-dot { width: 10px; height: 10px; border-radius: 2px; flex-shrink: 0; }
+.empty { text-align: center; padding: 40px 20px; color: #6b7280; }
+.empty .icon { font-size: 36px; margin-bottom: 10px; }
+</style>
+</head>
+<body>
+<div class="header">
+  <h1>⚽ ЧЕМПІОНАТ СВІТУ 2026</h1>
+  <p>Канада · Мексика · США &nbsp;|&nbsp; 11 черв – 19 лип &nbsp;|&nbsp; Київ: <span id="clock">--:--:--</span></p>
+</div>
+<div class="status-bar">
+  <span><span class="live-dot"></span>Автооновлення кожну хвилину · UTC+3</span>
+  <span id="last-updated">Завантаження...</span>
+</div>
+<div class="tabs">
+  <div class="tab active" onclick="showPage('today')">📅 Сьогодні</div>
+  <div class="tab" onclick="showPage('schedule')">📋 Розклад</div>
+  <div class="tab" onclick="showPage('groups')">🏆 Групи</div>
+  <div class="tab" onclick="showPage('knockout')">⚡ Плей-офф</div>
+</div>
+<div id="today-page" class="page active"><div id="today-content"></div></div>
+<div id="schedule-page" class="page"><div id="schedule-content"></div></div>
+<div id="groups-page" class="page"><div id="groups-content"></div></div>
+<div id="knockout-page" class="page"><div id="knockout-content"></div></div>
+
+<script>
+const TEAMS = {
+  MEX:{n:'Мексика',f:'🇲🇽'}, RSA:{n:'ПАР',f:'🇿🇦'}, KOR:{n:'Пд. Корея',f:'🇰🇷'}, CZE:{n:'Чехія',f:'🇨🇿'},
+  CAN:{n:'Канада',f:'🇨🇦'}, BIH:{n:'Боснія і Г.',f:'🇧🇦'}, QAT:{n:'Катар',f:'🇶🇦'}, SUI:{n:'Швейцарія',f:'🇨🇭'},
+  BRA:{n:'Бразилія',f:'🇧🇷'}, MAR:{n:'Марокко',f:'🇲🇦'}, HAI:{n:'Гаїті',f:'🇭🇹'}, SCO:{n:'Шотландія',f:'🏴󠁧󠁢󠁳󠁣󠁴󠁿'},
+  USA:{n:'США',f:'🇺🇸'}, PAR:{n:'Парагвай',f:'🇵🇾'}, AUS:{n:'Австралія',f:'🇦🇺'}, TUR:{n:'Туреччина',f:'🇹🇷'},
+  GER:{n:'Німеччина',f:'🇩🇪'}, CUW:{n:'Кюрасао',f:'🇨🇼'}, CIV:{n:"Кот-д'Івуар",f:'🇨🇮'}, ECU:{n:'Еквадор',f:'🇪🇨'},
+  NED:{n:'Нідерланди',f:'🇳🇱'}, JPN:{n:'Японія',f:'🇯🇵'}, SWE:{n:'Швеція',f:'🇸🇪'}, TUN:{n:'Туніс',f:'🇹🇳'},
+  BEL:{n:'Бельгія',f:'🇧🇪'}, EGY:{n:'Єгипет',f:'🇪🇬'}, IRN:{n:'Іран',f:'🇮🇷'}, NZL:{n:'Нова Зеландія',f:'🇳🇿'},
+  ESP:{n:'Іспанія',f:'🇪🇸'}, CPV:{n:'Кабо-Верде',f:'🇨🇻'}, KSA:{n:'Саудівська Ар.',f:'🇸🇦'}, URU:{n:'Уругвай',f:'🇺🇾'},
+  FRA:{n:'Франція',f:'🇫🇷'}, SEN:{n:'Сенегал',f:'🇸🇳'}, IRQ:{n:'Ірак',f:'🇮🇶'}, NOR:{n:'Норвегія',f:'🇳🇴'},
+  ARG:{n:'Аргентина',f:'🇦🇷'}, ALG:{n:'Алжир',f:'🇩🇿'}, AUT:{n:'Австрія',f:'🇦🇹'}, JOR:{n:'Йорданія',f:'🇯🇴'},
+  POR:{n:'Португалія',f:'🇵🇹'}, COD:{n:'ДР Конго',f:'🇨🇩'}, UZB:{n:'Узбекистан',f:'🇺🇿'}, COL:{n:'Колумбія',f:'🇨🇴'},
+  ENG:{n:'Англія',f:'🏴󠁧󠁢󠁥󠁮󠁧󠁿'}, CRO:{n:'Хорватія',f:'🇭🇷'}, GHA:{n:'Гана',f:'🇬🇭'}, PAN:{n:'Панама',f:'🇵🇦'}
+};
+
+const GROUPS = {
+  A:['MEX','RSA','KOR','CZE'], B:['CAN','BIH','QAT','SUI'],
+  C:['BRA','MAR','HAI','SCO'], D:['USA','PAR','AUS','TUR'],
+  E:['GER','CUW','CIV','ECU'], F:['NED','JPN','SWE','TUN'],
+  G:['BEL','EGY','IRN','NZL'], H:['ESP','CPV','KSA','URU'],
+  I:['FRA','SEN','IRQ','NOR'], J:['ARG','ALG','AUT','JOR'],
+  K:['POR','COD','UZB','COL'], L:['ENG','CRO','GHA','PAN']
+};
+
+const M = [
+  {id:1,g:'A',h:'MEX',a:'RSA',u:'2026-06-11T19:00:00Z',v:'Estadio Azteca'},
+  {id:2,g:'A',h:'KOR',a:'CZE',u:'2026-06-12T02:00:00Z',v:'Estadio Akron'},
+  {id:3,g:'B',h:'CAN',a:'BIH',u:'2026-06-12T19:00:00Z',v:'BMO Field, Торонто'},
+  {id:4,g:'D',h:'USA',a:'PAR',u:'2026-06-13T01:00:00Z',v:'SoFi Stadium'},
+  {id:5,g:'B',h:'QAT',a:'SUI',u:'2026-06-13T19:00:00Z',v:"Levi's Stadium"},
+  {id:6,g:'C',h:'BRA',a:'MAR',u:'2026-06-13T22:00:00Z',v:'MetLife Stadium'},
+  {id:7,g:'C',h:'HAI',a:'SCO',u:'2026-06-14T01:00:00Z',v:'Gillette Stadium'},
+  {id:8,g:'D',h:'AUS',a:'TUR',u:'2026-06-14T04:00:00Z',v:'BC Place, Ванкувер'},
+  {id:9,g:'E',h:'GER',a:'CUW',u:'2026-06-14T17:00:00Z',v:'NRG Stadium'},
+  {id:10,g:'F',h:'NED',a:'JPN',u:'2026-06-14T20:00:00Z',v:'AT&T Stadium'},
+  {id:11,g:'E',h:'CIV',a:'ECU',u:'2026-06-14T23:00:00Z',v:'Lincoln Financial Field'},
+  {id:12,g:'F',h:'SWE',a:'TUN',u:'2026-06-15T02:00:00Z',v:'Estadio BBVA'},
+  {id:13,g:'H',h:'ESP',a:'CPV',u:'2026-06-15T16:00:00Z',v:'Mercedes-Benz Stadium'},
+  {id:14,g:'G',h:'BEL',a:'EGY',u:'2026-06-15T19:00:00Z',v:'Lumen Field'},
+  {id:15,g:'H',h:'KSA',a:'URU',u:'2026-06-15T22:00:00Z',v:'Hard Rock Stadium'},
+  {id:16,g:'G',h:'IRN',a:'NZL',u:'2026-06-16T01:00:00Z',v:'SoFi Stadium'},
+  {id:17,g:'I',h:'FRA',a:'SEN',u:'2026-06-16T19:00:00Z',v:'MetLife Stadium'},
+  {id:18,g:'I',h:'IRQ',a:'NOR',u:'2026-06-16T22:00:00Z',v:'Gillette Stadium'},
+  {id:19,g:'J',h:'ARG',a:'ALG',u:'2026-06-17T01:00:00Z',v:'Arrowhead Stadium'},
+  {id:20,g:'J',h:'AUT',a:'JOR',u:'2026-06-17T04:00:00Z',v:"Levi's Stadium"},
+  {id:21,g:'K',h:'POR',a:'COD',u:'2026-06-17T17:00:00Z',v:'NRG Stadium'},
+  {id:22,g:'L',h:'ENG',a:'CRO',u:'2026-06-17T20:00:00Z',v:'AT&T Stadium'},
+  {id:23,g:'L',h:'GHA',a:'PAN',u:'2026-06-17T23:00:00Z',v:'BMO Field'},
+  {id:24,g:'K',h:'UZB',a:'COL',u:'2026-06-18T02:00:00Z',v:'Estadio Azteca'},
+  {id:25,g:'A',h:'CZE',a:'RSA',u:'2026-06-18T16:00:00Z',v:'Mercedes-Benz Stadium'},
+  {id:26,g:'B',h:'SUI',a:'BIH',u:'2026-06-18T19:00:00Z',v:'SoFi Stadium'},
+  {id:27,g:'B',h:'CAN',a:'QAT',u:'2026-06-18T22:00:00Z',v:'BC Place'},
+  {id:28,g:'A',h:'MEX',a:'KOR',u:'2026-06-19T01:00:00Z',v:'Estadio Akron'},
+  {id:29,g:'D',h:'USA',a:'AUS',u:'2026-06-19T19:00:00Z',v:'Lumen Field'},
+  {id:30,g:'C',h:'SCO',a:'MAR',u:'2026-06-19T22:00:00Z',v:'Gillette Stadium'},
+  {id:31,g:'C',h:'BRA',a:'HAI',u:'2026-06-20T00:30:00Z',v:'Lincoln Financial Field'},
+  {id:32,g:'D',h:'TUR',a:'PAR',u:'2026-06-20T03:00:00Z',v:"Levi's Stadium"},
+  {id:33,g:'F',h:'NED',a:'SWE',u:'2026-06-20T17:00:00Z',v:'NRG Stadium'},
+  {id:34,g:'E',h:'GER',a:'CIV',u:'2026-06-20T20:00:00Z',v:'BMO Field'},
+  {id:35,g:'E',h:'ECU',a:'CUW',u:'2026-06-21T00:00:00Z',v:'Arrowhead Stadium'},
+  {id:36,g:'F',h:'TUN',a:'JPN',u:'2026-06-21T04:00:00Z',v:'Estadio BBVA'},
+  {id:37,g:'H',h:'ESP',a:'KSA',u:'2026-06-21T16:00:00Z',v:'Mercedes-Benz Stadium'},
+  {id:38,g:'G',h:'BEL',a:'IRN',u:'2026-06-21T19:00:00Z',v:'SoFi Stadium'},
+  {id:39,g:'H',h:'URU',a:'CPV',u:'2026-06-21T22:00:00Z',v:'Hard Rock Stadium'},
+  {id:40,g:'G',h:'NZL',a:'EGY',u:'2026-06-22T01:00:00Z',v:'BC Place'},
+  {id:41,g:'J',h:'ARG',a:'AUT',u:'2026-06-22T17:00:00Z',v:'AT&T Stadium'},
+  {id:42,g:'I',h:'FRA',a:'IRQ',u:'2026-06-22T21:00:00Z',v:'Lincoln Financial Field'},
+  {id:43,g:'I',h:'NOR',a:'SEN',u:'2026-06-23T00:00:00Z',v:'MetLife Stadium'},
+  {id:44,g:'J',h:'JOR',a:'ALG',u:'2026-06-23T03:00:00Z',v:"Levi's Stadium"},
+  {id:45,g:'K',h:'POR',a:'UZB',u:'2026-06-23T17:00:00Z',v:'NRG Stadium'},
+  {id:46,g:'L',h:'ENG',a:'GHA',u:'2026-06-23T20:00:00Z',v:'Gillette Stadium'},
+  {id:47,g:'L',h:'PAN',a:'CRO',u:'2026-06-23T23:00:00Z',v:'BMO Field'},
+  {id:48,g:'K',h:'COL',a:'COD',u:'2026-06-24T02:00:00Z',v:'Estadio Akron'},
+  {id:49,g:'B',h:'SUI',a:'CAN',u:'2026-06-24T19:00:00Z',v:'BC Place'},
+  {id:50,g:'B',h:'BIH',a:'QAT',u:'2026-06-24T19:00:00Z',v:'Lumen Field'},
+  {id:51,g:'C',h:'SCO',a:'BRA',u:'2026-06-24T22:00:00Z',v:'Hard Rock Stadium'},
+  {id:52,g:'C',h:'MAR',a:'HAI',u:'2026-06-24T22:00:00Z',v:'Mercedes-Benz Stadium'},
+  {id:53,g:'A',h:'CZE',a:'MEX',u:'2026-06-25T01:00:00Z',v:'Estadio Azteca'},
+  {id:54,g:'A',h:'RSA',a:'KOR',u:'2026-06-25T01:00:00Z',v:'Estadio BBVA'},
+  {id:55,g:'E',h:'CUW',a:'CIV',u:'2026-06-25T20:00:00Z',v:'Lincoln Financial Field'},
+  {id:56,g:'E',h:'ECU',a:'GER',u:'2026-06-25T20:00:00Z',v:'MetLife Stadium'},
+  {id:57,g:'F',h:'JPN',a:'SWE',u:'2026-06-25T23:00:00Z',v:'AT&T Stadium'},
+  {id:58,g:'F',h:'TUN',a:'NED',u:'2026-06-25T23:00:00Z',v:'Arrowhead Stadium'},
+  {id:59,g:'D',h:'TUR',a:'USA',u:'2026-06-26T02:00:00Z',v:'SoFi Stadium'},
+  {id:60,g:'D',h:'PAR',a:'AUS',u:'2026-06-26T02:00:00Z',v:"Levi's Stadium"},
+  {id:61,g:'I',h:'NOR',a:'FRA',u:'2026-06-26T19:00:00Z',v:'Gillette Stadium'},
+  {id:62,g:'I',h:'SEN',a:'IRQ',u:'2026-06-26T19:00:00Z',v:'BMO Field'},
+  {id:63,g:'H',h:'CPV',a:'KSA',u:'2026-06-27T00:00:00Z',v:'NRG Stadium'},
+  {id:64,g:'H',h:'URU',a:'ESP',u:'2026-06-27T00:00:00Z',v:'Estadio Akron'},
+  {id:65,g:'G',h:'EGY',a:'IRN',u:'2026-06-27T03:00:00Z',v:'Lumen Field'},
+  {id:66,g:'G',h:'NZL',a:'BEL',u:'2026-06-27T03:00:00Z',v:'BC Place'},
+  {id:67,g:'L',h:'PAN',a:'ENG',u:'2026-06-27T21:00:00Z',v:'MetLife Stadium'},
+  {id:68,g:'L',h:'CRO',a:'GHA',u:'2026-06-27T21:00:00Z',v:'Lincoln Financial Field'},
+  {id:69,g:'K',h:'COL',a:'POR',u:'2026-06-27T23:30:00Z',v:'Hard Rock Stadium'},
+  {id:70,g:'K',h:'COD',a:'UZB',u:'2026-06-27T23:30:00Z',v:'Mercedes-Benz Stadium'},
+  {id:71,g:'J',h:'ALG',a:'AUT',u:'2026-06-28T02:00:00Z',v:'Arrowhead Stadium'},
+  {id:72,g:'J',h:'JOR',a:'ARG',u:'2026-06-28T02:00:00Z',v:'AT&T Stadium'},
+  // Round of 32
+  {id:73,r:'1/32',l:'Кр.А – Кр.Б',u:'2026-06-28T19:00:00Z',v:'SoFi Stadium'},
+  {id:74,r:'1/32',l:'1В – Кр.Ж',u:'2026-06-29T17:00:00Z',v:'NRG Stadium'},
+  {id:75,r:'1/32',l:'1Д – Кращий 3-й',u:'2026-06-29T20:30:00Z',v:'Gillette Stadium'},
+  {id:76,r:'1/32',l:'1Ж – Кр.В',u:'2026-06-30T01:00:00Z',v:'Estadio BBVA'},
+  {id:77,r:'1/32',l:'Кр.Д – Кр.З',u:'2026-06-30T17:00:00Z',v:'AT&T Stadium'},
+  {id:78,r:'1/32',l:'1З – Кращий 3-й',u:'2026-06-30T21:00:00Z',v:'MetLife Stadium'},
+  {id:79,r:'1/32',l:'1А – Кращий 3-й',u:'2026-07-01T01:00:00Z',v:'Estadio Azteca'},
+  {id:80,r:'1/32',l:'1Л – Кращий 3-й',u:'2026-07-01T16:00:00Z',v:'Mercedes-Benz Stadium'},
+  {id:81,r:'1/32',l:'1Є – Кращий 3-й',u:'2026-07-01T20:00:00Z',v:'Lumen Field'},
+  {id:82,r:'1/32',l:'1Г – Кращий 3-й',u:'2026-07-02T00:00:00Z',v:"Levi's Stadium"},
+  {id:83,r:'1/32',l:'1Ж – Кр.З',u:'2026-07-02T19:00:00Z',v:'SoFi Stadium'},
+  {id:84,r:'1/32',l:'Кр.К – Кр.Л',u:'2026-07-02T23:00:00Z',v:'BMO Field'},
+  {id:85,r:'1/32',l:'1Б – Кращий 3-й',u:'2026-07-03T03:00:00Z',v:'BC Place'},
+  {id:86,r:'1/32',l:'Кр.Г – Кр.Є',u:'2026-07-03T18:00:00Z',v:'AT&T Stadium'},
+  {id:87,r:'1/32',l:'1З – Кр.З',u:'2026-07-03T22:00:00Z',v:'Hard Rock Stadium'},
+  {id:88,r:'1/32',l:'1К – Кращий 3-й',u:'2026-07-04T01:30:00Z',v:'Arrowhead Stadium'},
+  // Round of 16
+  {id:89,r:'1/16',l:'1/16 Фіналу #1',u:'2026-07-04T17:00:00Z',v:'NRG Stadium'},
+  {id:90,r:'1/16',l:'1/16 Фіналу #2',u:'2026-07-04T21:00:00Z',v:'Lincoln Financial Field'},
+  {id:91,r:'1/16',l:'1/16 Фіналу #3',u:'2026-07-05T20:00:00Z',v:'MetLife Stadium'},
+  {id:92,r:'1/16',l:'1/16 Фіналу #4',u:'2026-07-06T00:00:00Z',v:'Estadio Azteca'},
+  {id:93,r:'1/16',l:'1/16 Фіналу #5',u:'2026-07-06T19:00:00Z',v:'AT&T Stadium'},
+  {id:94,r:'1/16',l:'1/16 Фіналу #6',u:'2026-07-07T00:00:00Z',v:'Lumen Field'},
+  {id:95,r:'1/16',l:'1/16 Фіналу #7',u:'2026-07-07T16:00:00Z',v:'Mercedes-Benz Stadium'},
+  {id:96,r:'1/16',l:'1/16 Фіналу #8',u:'2026-07-07T20:00:00Z',v:'BC Place'},
+  // Quarterfinals
+  {id:97,r:'1/4',l:'Чвертьфінал #1',u:'2026-07-09T20:00:00Z',v:'Gillette Stadium'},
+  {id:98,r:'1/4',l:'Чвертьфінал #2',u:'2026-07-10T19:00:00Z',v:'SoFi Stadium'},
+  {id:99,r:'1/4',l:'Чвертьфінал #3',u:'2026-07-11T21:00:00Z',v:'Hard Rock Stadium'},
+  {id:100,r:'1/4',l:'Чвертьфінал #4',u:'2026-07-12T01:00:00Z',v:'Arrowhead Stadium'},
+  // Semis
+  {id:101,r:'1/2',l:'Півфінал #1',u:'2026-07-15T19:00:00Z',v:'AT&T Stadium'},
+  {id:102,r:'1/2',l:'Півфінал #2',u:'2026-07-16T19:00:00Z',v:'Mercedes-Benz Stadium'},
+  // 3rd place
+  {id:103,r:'3rd',l:'Матч за 3-є місце',u:'2026-07-18T21:00:00Z',v:'Hard Rock Stadium'},
+  // Final
+  {id:104,r:'final',l:'🏆 ФІНАЛ',u:'2026-07-19T19:00:00Z',v:'MetLife Stadium, Іст-Рузерфорд'}
+];
+
+const ROUND_NAMES = {'1/32':'1/16 Фіналу','1/16':'1/8 Фіналу','1/4':'Чвертьфінали','1/2':'Півфінали','3rd':'3-є місце','final':'Фінал'};
+
+// Scores cache
+let SC = {};
+
+// ===================== UTILS =====================
+function kyiv(u) { return new Date(new Date(u).getTime() + 3*3600000); }
+function kTime(u) { const d=kyiv(u); return pad(d.getUTCHours())+':'+pad(d.getUTCMinutes()); }
+function pad(n) { return String(n).padStart(2,'0'); }
+function kDateStr(u) {
+  const d=kyiv(u);
+  const W=['нд','пн','вт','ср','чт','пт','сб'];
+  const Mo=['','січ','лют','бер','кві','тра','чер','лип','сер','вер','жов','лис','гру'];
+  return `${W[d.getUTCDay()]}, ${d.getUTCDate()} ${Mo[d.getUTCMonth()+1]}`;
+}
+function kDateKey(u) { const d=kyiv(u); return `${d.getUTCFullYear()}-${pad(d.getUTCMonth()+1)}-${pad(d.getUTCDate())}`; }
+function todayKey() { return kDateKey(new Date().toISOString()); }
+function T(c) { return TEAMS[c]||{n:c,f:'🏳'}; }
+
+function mStatus(m) {
+  const sc = SC[m.id];
+  if (sc) return sc.done ? 'done' : sc.live ? 'live' : 'upcoming';
+  const e = Date.now() - new Date(m.u).getTime();
+  if (e < 0) return 'upcoming';
+  if (e < 125*60000) return 'live';
+  return 'done';
+}
+
+// ===================== MATCH ROW =====================
+function mRow(m) {
+  const st = mStatus(m);
+  const sc = SC[m.id];
+
+  let tHtml;
+  if (st==='live') tHtml = `<div class="match-time live-time"><span class="live-badge">⚽ LIVE</span></div>`;
+  else if (st==='done') tHtml = `<div class="match-time done-time">Кінець</div>`;
+  else tHtml = `<div class="match-time">${kTime(m.u)}</div>`;
+
+  let body, badge;
+  if (m.g) {
+    const ht=T(m.h), at=T(m.a);
+    let sc_html;
+    if (st==='upcoming' && !sc) sc_html = `<span class="score-vs">–</span>`;
+    else sc_html = `<span class="score-num">${sc?sc.h:'?'}</span><span class="score-sep">:</span><span class="score-num">${sc?sc.a:'?'}</span>`;
+    body = `<div class="teams-block">
+      <div class="team-side team-home"><span class="team-name">${ht.n}</span><span class="team-flag">${ht.f}</span></div>
+      <div class="score-center">${sc_html}</div>
+      <div class="team-side team-away"><span class="team-flag">${at.f}</span><span class="team-name">${at.n}</span></div>
+    </div>`;
+    badge = `<span class="group-badge">Гр.${m.g}</span>`;
+  } else {
+    body = `<div class="teams-block" style="justify-content:center;font-size:13px;font-weight:600;color:#374151;gap:0">${m.l}</div>`;
+    badge = m.r==='final' ? `<span class="final-badge">Фінал</span>` : `<span class="round-badge">${ROUND_NAMES[m.r]||m.r}</span>`;
+  }
+
+  return `<div class="match-row">${tHtml}${body}<div class="match-badge">${badge}</div></div>`;
+}
+
+// ===================== PAGES =====================
+function rToday() {
+  const tk = todayKey();
+  const tms = M.filter(m => kDateKey(m.u)===tk);
+  const tmk = kDateKey(new Date(Date.now()+86400000).toISOString());
+  const tomorrowMs = M.filter(m => kDateKey(m.u)===tmk);
+  let h = '';
+  if (tms.length) {
+    h += `<div class="day-header">🗓 Сьогодні — ${kDateStr(tms[0].u)}</div>`;
+    tms.forEach(m => h += mRow(m));
+  } else {
+    h += `<div class="empty"><div class="icon">📅</div><p>Сьогодні матчів немає</p></div>`;
+  }
+  if (tomorrowMs.length) {
+    h += `<div class="day-header">➡️ Завтра — ${kDateStr(tomorrowMs[0].u)}</div>`;
+    tomorrowMs.forEach(m => h += mRow(m));
+  }
+  document.getElementById('today-content').innerHTML = h || `<div class="empty"><div class="icon">⚽</div><p>Чемпіонат завершено</p></div>`;
+}
+
+function rSchedule() {
+  const bd = {};
+  M.forEach(m => { const k=kDateKey(m.u); (bd[k]=bd[k]||[]).push(m); });
+  let h = '';
+  Object.keys(bd).sort().forEach(k => {
+    const ms=bd[k];
+    h += `<div class="day-header">${kDateStr(ms[0].u)}</div>`;
+    ms.forEach(m => h += mRow(m));
+  });
+  document.getElementById('schedule-content').innerHTML = h;
+}
+
+function rGroups() {
+  const st = {};
+  Object.keys(GROUPS).forEach(g => {
+    st[g]={};
+    GROUPS[g].forEach(t => { st[g][t]={P:0,W:0,D:0,L:0,GF:0,GA:0,Pts:0}; });
+  });
+  M.filter(m => m.g && SC[m.id]).forEach(m => {
+    const s=SC[m.id], g=m.g;
+    const hg=parseInt(s.h)||0, ag=parseInt(s.a)||0;
+    if (!st[g][m.h]||!st[g][m.a]) return;
+    st[g][m.h].P++; st[g][m.a].P++;
+    st[g][m.h].GF+=hg; st[g][m.h].GA+=ag;
+    st[g][m.a].GF+=ag; st[g][m.a].GA+=hg;
+    if (hg>ag) { st[g][m.h].W++; st[g][m.h].Pts+=3; st[g][m.a].L++; }
+    else if (hg===ag) { st[g][m.h].D++; st[g][m.h].Pts++; st[g][m.a].D++; st[g][m.a].Pts++; }
+    else { st[g][m.a].W++; st[g][m.a].Pts+=3; st[g][m.h].L++; }
+  });
+  let h = '<div class="groups-grid">';
+  Object.keys(GROUPS).sort().forEach(g => {
+    const sorted = [...GROUPS[g]].sort((a,b) => {
+      const sa=st[g][a],sb=st[g][b];
+      if (sb.Pts!==sa.Pts) return sb.Pts-sa.Pts;
+      const da=sa.GF-sa.GA, db=sb.GF-sb.GA;
+      return db!==da ? db-da : sb.GF-sa.GF;
+    });
+    h += `<div class="group-card"><div class="group-card-title">⚽ Група ${g}</div><table class="group-tbl"><thead><tr><th>Команда</th><th>М</th><th>В</th><th>Н</th><th>П</th><th>Г</th><th>О</th></tr></thead><tbody>`;
+    sorted.forEach((t,i) => {
+      const tm=T(t), s=st[g][t];
+      const cls = i<2?'row-q':i===2?'row-p':'';
+      h += `<tr class="${cls}"><td><div class="team-cell-g">${tm.f}<span>${tm.n}</span></div></td><td>${s.P}</td><td>${s.W}</td><td>${s.D}</td><td>${s.L}</td><td>${s.GF}:${s.GA}</td><td class="pts-bold">${s.Pts}</td></tr>`;
+    });
+    h += '</tbody></table></div>';
+  });
+  h += '</div>';
+  h += `<div class="legend"><span><span class="leg-dot" style="background:#86efac"></span>Вихід в плей-офф (1-е, 2-е)</span><span><span class="leg-dot" style="background:#fde68a"></span>Можливий вихід (3-є)</span></div>`;
+  document.getElementById('groups-content').innerHTML = h;
+}
+
+function rKnockout() {
+  const rounds = ['1/32','1/16','1/4','1/2','3rd','final'];
+  // 1/32 = Ukrainian "1/16 фіналу" (Round of 32), 1/16 = Ukrainian "1/8 фіналу" (Round of 16)
+  let h = '';
+  rounds.forEach(r => {
+    const ms = M.filter(m => m.r===r);
+    if (!ms.length) return;
+    const icon = r==='final'?'🏆':r==='1/2'?'🔥':r==='1/4'?'⚡':'▶️';
+    h += `<div class="ko-round-title">${icon} ${ROUND_NAMES[r]}</div>`;
+    ms.forEach(m => h += mRow(m));
+  });
+  document.getElementById('knockout-content').innerHTML = h;
+}
+
+// ===================== LIVE SCORES =====================
+async function fetchScores() {
+  // Try ESPN API via window.cowork if available, else direct fetch
+  const today = todayKey().replace(/-/g,'');
+
+  async function tryEspn(leagueSlug) {
+    const url = `https://site.api.espn.com/apis/site/v2/sports/soccer/${leagueSlug}/scoreboard?dates=${today}`;
+    let data;
+    if (window.cowork?.callMcpTool) {
+      const r = await window.cowork.callMcpTool('mcp__workspace__web_fetch', {url});
+      if (r.isError) return null;
+      const txt = r.content?.[0]?.text || r.structuredContent?.content?.[0]?.text || '';
+      try { data = JSON.parse(txt); } catch(e) {
+        const m = txt.match(/\{[\s\S]+\}/); if(m) try { data=JSON.parse(m[0]); } catch(e2){}
+      }
+    } else {
+      const resp = await fetch(url); if (!resp.ok) return null;
+      data = await resp.json();
+    }
+    return data;
+  }
+
+  // ESPN abbreviation normalization
+  const espnAbbr = {
+    HOL:'NED', CRC:'CRC', URU:'URU', RSA:'RSA', KOR:'KOR',
+    PHI:'PAN', NED:'NED', ARG:'ARG', MEX:'MEX', BRA:'BRA',
+    USA:'USA', FRA:'FRA', ESP:'ESP', ENG:'ENG', GER:'GER',
+    POR:'POR', BEL:'BEL', SCO:'SCO', AUS:'AUS', JPN:'JPN',
+    SEN:'SEN', NOR:'NOR', SWE:'SWE', IRN:'IRI'
+  };
+
+  for (const slug of ['FIFA.World','fifa.world.cup.2026']) {
+    try {
+      const data = await tryEspn(slug);
+      if (!data?.events?.length) continue;
+      let updated = 0;
+      data.events.forEach(ev => {
+        const comp = ev.competitions?.[0]; if (!comp) return;
+        const homeC = comp.competitors?.find(c=>c.homeAway==='home');
+        const awayC = comp.competitors?.find(c=>c.homeAway==='away');
+        if (!homeC||!awayC) return;
+        const ha = espnAbbr[homeC.team?.abbreviation] || homeC.team?.abbreviation;
+        const aa = espnAbbr[awayC.team?.abbreviation] || awayC.team?.abbreviation;
+        const match = M.find(m => m.h&&m.a&&((m.h===ha&&m.a===aa)||(m.h===homeC.team?.abbreviation&&m.a===awayC.team?.abbreviation)));
+        if (!match) return;
+        const desc = ev.status?.type?.description||'';
+        const live = desc==='In Progress'||desc==='Halftime';
+        const done = desc.match(/Final|Full|FT|Post/i);
+        if (live||done) {
+          SC[match.id] = {h:homeC.score||'0', a:awayC.score||'0', live:!!live, done:!!done, clock:ev.status?.displayClock||''};
+          updated++;
+        }
+      });
+      document.getElementById('last-updated').textContent = `Оновлено о ${new Date().toLocaleTimeString('uk-UA')}`;
+      return;
+    } catch(e) {}
+  }
+  document.getElementById('last-updated').textContent = `Перевірено о ${new Date().toLocaleTimeString('uk-UA')}`;
+}
+
+// ===================== TABS =====================
+let curPage = 'today';
+function showPage(p) {
+  curPage = p;
+  document.querySelectorAll('.tab').forEach((t,i) => t.classList.toggle('active', ['today','schedule','groups','knockout'][i]===p));
+  document.querySelectorAll('.page').forEach(el => el.classList.remove('active'));
+  document.getElementById(p+'-page').classList.add('active');
+  render(p);
+}
+function render(p) {
+  if (p==='today') rToday();
+  else if (p==='schedule') rSchedule();
+  else if (p==='groups') rGroups();
+  else if (p==='knockout') rKnockout();
+}
+
+// ===================== CLOCK =====================
+function tickClock() {
+  const d=kyiv(new Date().toISOString());
+  document.getElementById('clock').textContent = pad(d.getUTCHours())+':'+pad(d.getUTCMinutes())+':'+pad(d.getUTCSeconds());
+}
+
+// ===================== INIT =====================
+function init() {
+  tickClock();
+  setInterval(tickClock, 1000);
+  render('today'); rSchedule(); rGroups(); rKnockout();
+  fetchScores();
+  setInterval(async () => { await fetchScores(); render(curPage); }, 60000);
+}
+
+if (document.readyState !== 'loading') init();
+else document.addEventListener('DOMContentLoaded', init);
+</script>
+</body>
+</html>
