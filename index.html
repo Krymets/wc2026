@@ -434,6 +434,7 @@ async function fetchScores() {
         }
       });
       document.getElementById('last-updated').textContent = `Оновлено о ${new Date().toLocaleTimeString('uk-UA')}`;
+      rToday(); rSchedule(); rGroups(); rKnockout();
       return;
     } catch(e) {}
   }
@@ -468,7 +469,7 @@ function init() {
   setInterval(tickClock, 1000);
   render('today'); rSchedule(); rGroups(); rKnockout();
   fetchScores();
-  setInterval(async () => { await fetchScores(); render(curPage); }, 60000);
+  setInterval(fetchScores, 60000);
 }
 
 if (document.readyState !== 'loading') init();
