@@ -243,6 +243,7 @@ const ROUND_NAMES = {'1/32':'1/16 Фіналу','1/16':'1/8 Фіналу','1/4':
 // Scores cache
 let SC = {};
 
+
 // ===================== UTILS =====================
 function kyiv(u) { return new Date(new Date(u).getTime() + 3*3600000); }
 function kTime(u) { const d=kyiv(u); return pad(d.getUTCHours())+':'+pad(d.getUTCMinutes()); }
@@ -382,63 +383,71 @@ function rKnockout() {
 
 // ===================== LIVE SCORES =====================
 async function fetchScores() {
-  // Try ESPN API via window.cowork if available, else direct fetch
-  const today = todayKey().replace(/-/g,'');
-
-  async function tryEspn(leagueSlug) {
-    const url = `https://site.api.espn.com/apis/site/v2/sports/soccer/${leagueSlug}/scoreboard?dates=${today}`;
-    let data;
-    if (window.cowork?.callMcpTool) {
-      const r = await window.cowork.callMcpTool('mcp__workspace__web_fetch', {url});
-      if (r.isError) return null;
-      const txt = r.content?.[0]?.text || r.structuredContent?.content?.[0]?.text || '';
-      try { data = JSON.parse(txt); } catch(e) {
-        const m = txt.match(/\{[\s\S]+\}/); if(m) try { data=JSON.parse(m[0]); } catch(e2){}
-      }
-    } else {
-      const resp = await fetch(url); if (!resp.ok) return null;
-      data = await resp.json();
-    }
-    return data;
-  }
-
-  // ESPN abbreviation normalization
   const espnAbbr = {
-    HOL:'NED', CRC:'CRC', URU:'URU', RSA:'RSA', KOR:'KOR',
-    PHI:'PAN', NED:'NED', ARG:'ARG', MEX:'MEX', BRA:'BRA',
-    USA:'USA', FRA:'FRA', ESP:'ESP', ENG:'ENG', GER:'GER',
-    POR:'POR', BEL:'BEL', SCO:'SCO', AUS:'AUS', JPN:'JPN',
-    SEN:'SEN', NOR:'NOR', SWE:'SWE', IRN:'IRI'
+    MEX:'MEX', RSA:'RSA', ZAF:'RSA', KOR:'KOR', CZE:'CZE',
+    CAN:'CAN', BIH:'BIH', BOS:'BIH', QAT:'QAT', SUI:'SUI', SWI:'SUI',
+    BRA:'BRA', MAR:'MAR', MOR:'MAR', HAI:'HAI', SCO:'SCO',
+    USA:'USA', PAR:'PAR', AUS:'AUS', TUR:'TUR',
+    GER:'GER', CUW:'CUW', CUR:'CUW', CIV:'CIV', IVC:'CIV', ECU:'ECU',
+    NED:'NED', HOL:'NED', JPN:'JPN', SWE:'SWE', TUN:'TUN',
+    BEL:'BEL', EGY:'EGY', IRN:'IRN', IRI:'IRN', NZL:'NZL',
+    ESP:'ESP', CPV:'CPV', KSA:'KSA', SAU:'KSA', URU:'URU',
+    FRA:'FRA', SEN:'SEN', IRQ:'IRQ', NOR:'NOR',
+    ARG:'ARG', ALG:'ALG', AUT:'AUT', JOR:'JOR',
+    POR:'POR', COD:'COD', DRC:'COD', UZB:'UZB', COL:'COL',
+    ENG:'ENG', CRO:'CRO', GHA:'GHA', PAN:'PAN', PHI:'PAN'
   };
-
-  for (const slug of ['FIFA.World','fifa.world.cup.2026']) {
-    try {
-      const data = await tryEspn(slug);
-      if (!data?.events?.length) continue;
-      let updated = 0;
-      data.events.forEach(ev => {
-        const comp = ev.competitions?.[0]; if (!comp) return;
-        const homeC = comp.competitors?.find(c=>c.homeAway==='home');
-        const awayC = comp.competitors?.find(c=>c.homeAway==='away');
-        if (!homeC||!awayC) return;
-        const ha = espnAbbr[homeC.team?.abbreviation] || homeC.team?.abbreviation;
-        const aa = espnAbbr[awayC.team?.abbreviation] || awayC.team?.abbreviation;
-        const match = M.find(m => m.h&&m.a&&((m.h===ha&&m.a===aa)||(m.h===homeC.team?.abbreviation&&m.a===awayC.team?.abbreviation)));
-        if (!match) return;
-        const desc = ev.status?.type?.description||'';
-        const live = desc==='In Progress'||desc==='Halftime';
-        const done = desc.match(/Final|Full|FT|Post/i);
-        if (live||done) {
-          SC[match.id] = {h:homeC.score||'0', a:awayC.score||'0', live:!!live, done:!!done, clock:ev.status?.displayClock||''};
-          updated++;
-        }
-      });
-      document.getElementById('last-updated').textContent = `Оновлено о ${new Date().toLocaleTimeString('uk-UA')}`;
-      rToday(); rSchedule(); rGroups(); rKnockout();
-      return;
-    } catch(e) {}
+  const nameMap = {
+    'south africa':'RSA','south korea':'KOR','korea republic':'KOR',
+    'czechia':'CZE','czech republic':'CZE','bosnia and herzegovina':'BIH',
+    'bosnia-herzegovina':'BIH','ivory coast':'CIV',"cote d'ivoire":'CIV',
+    "côte d'ivoire":'CIV','new zealand':'NZL','cape verde':'CPV',
+    'saudi arabia':'KSA','united states':'USA','turkiye':'TUR',
+    'curacao':'CUW','curaçao':'CUW','dr congo':'COD',
+    'iran':'IRN','iran islamic republic':'IRN'
+  };
+  function mc(abbr, name) {
+    return espnAbbr[abbr] || nameMap[(name||'').toLowerCase().trim()] || abbr;
   }
-  document.getElementById('last-updated').textContent = `Перевірено о ${new Date().toLocaleTimeString('uk-UA')}`;
+
+  async function fetchDay(date) {
+    try {
+      const r = await fetch(`https://site.api.espn.com/apis/site/v2/sports/soccer/FIFA.World/scoreboard?dates=${date}`);
+      if (!r.ok) return null;
+      return await r.json();
+    } catch(e) { return null; }
+  }
+
+  const today = todayKey().replace(/-/g,'');
+  const yest  = kDateKey(new Date(Date.now()-86400000).toISOString()).replace(/-/g,'');
+  const dates  = today !== yest ? [today, yest] : [today];
+
+  let anyEvents = false;
+  for (const date of dates) {
+    const data = await fetchDay(date);
+    if (!data?.events?.length) continue;
+    anyEvents = true;
+    data.events.forEach(ev => {
+      const comp = ev.competitions?.[0]; if (!comp) return;
+      const homeC = comp.competitors?.find(c=>c.homeAway==='home');
+      const awayC = comp.competitors?.find(c=>c.homeAway==='away');
+      if (!homeC||!awayC) return;
+      const ha = mc(homeC.team?.abbreviation, homeC.team?.displayName);
+      const aa = mc(awayC.team?.abbreviation, awayC.team?.displayName);
+      const match = M.find(m => m.h===ha && m.a===aa);
+      if (!match) return;
+      const desc = ev.status?.type?.description||'';
+      const live = /In Progress|Half|Extra Time|Overtime/i.test(desc);
+      const done = /Final|Full Time|FT|Post|Ended/i.test(desc);
+      if (live || done) {
+        SC[match.id] = {h:homeC.score||'0', a:awayC.score||'0', live:!!live, done:!!done};
+      }
+    });
+  }
+
+  document.getElementById('last-updated').textContent =
+    `${anyEvents?'Оновлено':'Перевірено'} о ${new Date().toLocaleTimeString('uk-UA')}`;
+  if (anyEvents) { rToday(); rSchedule(); rGroups(); rKnockout(); }
 }
 
 // ===================== TABS =====================
