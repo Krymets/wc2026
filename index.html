@@ -621,7 +621,7 @@ async function loadAllStats() {
 }
 
 function rStats() {
-  const completedIds = M.filter(m => m.g && SC[m.id]?.done).map(m => m.id);
+  const completedIds = M.filter(m => m.g && (SC[m.id]?.done || SC[m.id]?.live)).map(m => m.id);
   const hasSummaries = completedIds.some(id => ME[id]);
 
   if (!hasSummaries) {
@@ -684,8 +684,12 @@ function rStats() {
   });
   chart += '</div>';
 
-  const matchCount = completedIds.filter(id => ME[id]).length;
-  let h = `<div class="stats-meta"><span>По ${matchCount} зіграних матчах</span></div>`;
+  const doneCount = completedIds.filter(id => ME[id] && SC[id]?.done).length;
+  const liveCount = completedIds.filter(id => ME[id] && SC[id]?.live).length;
+  const metaText = liveCount
+    ? `По ${doneCount} зіграних + ${liveCount} live матч${liveCount>1?'ах':'і'}`
+    : `По ${doneCount} зіграних матчах`;
+  let h = `<div class="stats-meta"><span>${metaText}</span></div>`;
   h += '<div class="stats-grid">';
   h += `<div class="stats-card"><div class="stats-card-title">⚽ Бомбардири</div>${playerRows(scorers,'goals','⚽')}</div>`;
   h += `<div class="stats-card"><div class="stats-card-title">🎯 Асисти</div>${playerRows(assists,'assists','🎯')}</div>`;
