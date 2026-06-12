@@ -590,14 +590,14 @@ async function fetchScores() {
       const done = /Final|Full Time|FT|Post|Ended/i.test(desc);
       if (live || done) {
         SC[match.id] = {h:homeC.score||'0', a:awayC.score||'0', live:!!live, done:!!done, espnId: ev.id};
-        if (!ME[match.id]) toFetch.push({matchId: match.id, espnId: ev.id, h: match.h, a: match.a});
+        if (!ME[match.id] || live) toFetch.push({matchId: match.id, espnId: ev.id, h: match.h, a: match.a});
       }
     });
   }
 
   document.getElementById('last-updated').textContent =
     `${anyEvents?'Оновлено':'Перевірено'} о ${new Date().toLocaleTimeString('uk-UA')}`;
-  if (anyEvents) { rToday(); rSchedule(); rGroups(); rKnockout(); }
+  if (anyEvents) { rToday(); rSchedule(); rGroups(); rKnockout(); if (curPage==='stats') rStats(); }
 
   for (const item of toFetch) {
     fetchMatchSummary(item.espnId, item.matchId, item.h, item.a);
