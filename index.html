@@ -109,7 +109,7 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; b
 <body>
 <div class="header">
   <h1>⚽ ЧЕМПІОНАТ СВІТУ 2026</h1>
-  <p>Канада · Мексика · США &nbsp;|&nbsp; 11 черв – 19 лип &nbsp;|&nbsp; Київ: <span id="clock">--:--:--</span></p>
+  <p>Канада · Мексика · США &nbsp;|&nbsp; 11 черв – 19 лип &nbsp;|&nbsp; Київ: <span id="clock">--:--</span></p>
 </div>
 <div class="status-bar">
   <span><span class="live-dot"></span>Автооновлення кожну хвилину · UTC+3</span>
@@ -721,7 +721,7 @@ function render(p) {
 // ===================== CLOCK =====================
 function tickClock() {
   const d=kyiv(new Date().toISOString());
-  document.getElementById('clock').textContent = pad(d.getUTCHours())+':'+pad(d.getUTCMinutes())+':'+pad(d.getUTCSeconds());
+  document.getElementById('clock').textContent = pad(d.getUTCHours())+':'+pad(d.getUTCMinutes());
 }
 
 // ===================== INIT =====================
