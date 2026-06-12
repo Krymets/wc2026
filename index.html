@@ -685,7 +685,7 @@ function rStats() {
   chart += '</div>';
 
   const matchCount = completedIds.filter(id => ME[id]).length;
-  let h = `<div class="stats-meta"><span>По ${matchCount} зіграних матчах</span><button class="refresh-btn" onclick="STATS_LOADING=false;loadAllStats()">🔄 Оновити</button></div>`;
+  let h = `<div class="stats-meta"><span>По ${matchCount} зіграних матчах</span></div>`;
   h += '<div class="stats-grid">';
   h += `<div class="stats-card"><div class="stats-card-title">⚽ Бомбардири</div>${playerRows(scorers,'goals','⚽')}</div>`;
   h += `<div class="stats-card"><div class="stats-card-title">🎯 Асисти</div>${playerRows(assists,'assists','🎯')}</div>`;
