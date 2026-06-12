@@ -270,6 +270,9 @@ const ROUND_NAMES = {'1/32':'1/16 Фіналу','1/16':'1/8 Фіналу','1/4':
 
 // Scores cache
 let SC = {};
+const SC_KEY = 'wc2026_scores_v1';
+function scSave() { try { localStorage.setItem(SC_KEY, JSON.stringify(SC)); } catch(e){} }
+function scLoad() { try { const d=JSON.parse(localStorage.getItem(SC_KEY)||'{}'); Object.assign(SC,d); } catch(e){} }
 
 // ESPN team code mappings (global so stats code can reuse)
 const ESPN_ABBR = {
@@ -372,6 +375,17 @@ function mEventsHtml(m) {
   return `<div class="events-grid">${rows}</div>`;
 }
 
+function scoreFromEvents(m) {
+  const evs = ME[m.id];
+  if (!evs || !evs.length) return null;
+  let h = 0, a = 0;
+  evs.forEach(e => {
+    if (e.type === 'goal') { if (e.team === m.h) h++; else if (e.team === m.a) a++; }
+    else if (e.type === 'own_goal') { if (e.team === m.h) a++; else if (e.team === m.a) h++; }
+  });
+  return {h: String(h), a: String(a)};
+}
+
 function mRow(m) {
   const st = mStatus(m);
   const sc = SC[m.id];
@@ -385,8 +399,14 @@ function mRow(m) {
   if (m.g) {
     const ht=T(m.h), at=T(m.a);
     let sc_html;
-    if (st==='upcoming' && !sc) sc_html = `<span class="score-vs">–</span>`;
-    else sc_html = `<span class="score-num">${sc?sc.h:'?'}</span><span class="score-sep">:</span><span class="score-num">${sc?sc.a:'?'}</span>`;
+    if (st==='upcoming' && !sc) {
+      sc_html = `<span class="score-vs">–</span>`;
+    } else {
+      const dsc = sc || scoreFromEvents(m);
+      sc_html = dsc
+        ? `<span class="score-num">${dsc.h}</span><span class="score-sep">:</span><span class="score-num">${dsc.a}</span>`
+        : `<span class="score-vs">–</span>`;
+    }
     body = `<div class="teams-block">
       <div class="team-side team-home"><span class="team-name">${ht.n}</span><span class="team-flag">${ht.f}</span></div>
       <div class="score-center">${sc_html}</div>
@@ -566,9 +586,10 @@ async function fetchScores() {
     } catch(e) { return null; }
   }
 
-  const today = todayKey().replace(/-/g,'');
-  const yest  = kDateKey(new Date(Date.now()-86400000).toISOString()).replace(/-/g,'');
-  const dates  = today !== yest ? [today, yest] : [today];
+  const today      = todayKey().replace(/-/g,'');
+  const yest       = kDateKey(new Date(Date.now()-86400000).toISOString()).replace(/-/g,'');
+  const twoDaysAgo = kDateKey(new Date(Date.now()-2*86400000).toISOString()).replace(/-/g,'');
+  const dates = [...new Set([today, yest, twoDaysAgo])];
 
   let anyEvents = false;
   const toFetch = [];
@@ -590,6 +611,7 @@ async function fetchScores() {
       const done = /Final|Full Time|FT|Post|Ended/i.test(desc);
       if (live || done) {
         SC[match.id] = {h:homeC.score||'0', a:awayC.score||'0', live:!!live, done:!!done, espnId: ev.id};
+        scSave();
         if (!ME[match.id] || live) toFetch.push({matchId: match.id, espnId: ev.id, h: match.h, a: match.a});
       }
     });
@@ -727,6 +749,7 @@ function tickClock() {
 // ===================== INIT =====================
 function init() {
   meLoad();
+  scLoad();
   tickClock();
   setInterval(tickClock, 1000);
   render('today'); rSchedule(); rGroups(); rKnockout();
