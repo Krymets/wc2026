@@ -293,7 +293,18 @@ const ESPN_NAME_MAP = {
   "côte d'ivoire":'CIV','new zealand':'NZL','cape verde':'CPV',
   'saudi arabia':'KSA','united states':'USA','turkiye':'TUR',
   'curacao':'CUW','curaçao':'CUW','dr congo':'COD',
-  'iran':'IRN','iran islamic republic':'IRN'
+  'iran':'IRN','iran islamic republic':'IRN',
+  'mexico':'MEX','canada':'CAN','qatar':'QAT','switzerland':'SUI',
+  'brazil':'BRA','morocco':'MAR','haiti':'HAI','scotland':'SCO',
+  'paraguay':'PAR','australia':'AUS','turkey':'TUR',
+  'germany':'GER','ecuador':'ECU','netherlands':'NED','japan':'JPN',
+  'sweden':'SWE','tunisia':'TUN','belgium':'BEL','egypt':'EGY',
+  'spain':'ESP','uruguay':'URU','france':'FRA','senegal':'SEN',
+  'iraq':'IRQ','norway':'NOR','argentina':'ARG','algeria':'ALG',
+  'austria':'AUT','jordan':'JOR','portugal':'POR','uzbekistan':'UZB',
+  'colombia':'COL','england':'ENG','croatia':'CRO','ghana':'GHA',
+  'panama':'PAN','democratic republic of the congo':'COD',
+  'dr congo':'COD','iran islamic republic of':'IRN'
 };
 function mc(abbr, name) {
   return ESPN_ABBR[abbr] || ESPN_NAME_MAP[(name||'').toLowerCase().trim()] || abbr;
@@ -465,36 +476,50 @@ function rKnockout() {
 // Match Events cache: {matchId: [{type,player,team,minute,minuteStr,assist,pen}]}
 const ME = {};
 
+function teamFromDisplayName(displayName) {
+  if (!displayName) return null;
+  const lower = displayName.toLowerCase().trim();
+  return ESPN_NAME_MAP[lower] || ESPN_ABBR[displayName.toUpperCase()] || null;
+}
+
 function parseEvents(data, homeCode, awayCode) {
   const events = [];
   const keyEvents = data?.keyEvents || [];
   keyEvents.forEach(ev => {
-    const typeText = (ev.type?.text || '').toLowerCase();
+    // ESPN soccer uses ev.type.type: "goal", "goal---header", "yellow-card", "red-card", etc.
+    const typeType = (ev.type?.type || '').toLowerCase();
     const clockStr = ev.clock?.displayValue || '';
-    const minute = parseInt(clockStr) || 0;
-    const athletes = ev.athletesInvolved || [];
-    let teamCode = ev.team?.abbreviation ? (ESPN_ABBR[ev.team.abbreviation] || ev.team.abbreviation) : null;
+    const minute = parseInt(clockStr) || Math.floor((ev.clock?.value || 0) / 60);
+    const minuteStr = clockStr || '?';
+    // ESPN soccer summary: participants array, no type markers — [0]=scorer, [1]=assister
+    const participants = ev.participants || ev.athletesInvolved || [];
+    // Team identified by displayName (no abbreviation in summary API)
+    const teamCode = teamFromDisplayName(ev.team?.displayName) ||
+                     (ev.team?.abbreviation ? (ESPN_ABBR[ev.team.abbreviation] || ev.team.abbreviation) : null);
 
-    if (ev.scoringPlay || typeText.includes('goal')) {
-      const scorer = athletes.find(a => (a.type?.text||'').toLowerCase().includes('scorer')) || athletes[0];
-      const assistant = athletes.find(a => (a.type?.text||'').toLowerCase().includes('assist'));
-      const isOG = typeText.includes('own');
-      if (scorer) {
+    const isGoal = ev.scoringPlay === true || typeType.startsWith('goal') || typeType.includes('goal');
+    if (isGoal) {
+      const scorer = participants[0];
+      const assistant = participants[1];
+      const name = scorer?.athlete?.displayName || scorer?.displayName || '';
+      if (name) {
         events.push({
-          type: isOG ? 'own_goal' : 'goal',
-          player: scorer.displayName || scorer.athlete?.displayName || '',
+          type: typeType.includes('own-goal') ? 'own_goal' : 'goal',
+          player: name,
           team: teamCode || homeCode,
-          minute, minuteStr: clockStr || '?',
-          assist: assistant ? (assistant.displayName || assistant.athlete?.displayName || null) : null,
-          pen: typeText.includes('penalty') || typeText.includes('pen')
+          minute, minuteStr,
+          assist: assistant?.athlete?.displayName || assistant?.displayName || null,
+          pen: typeType.includes('penalty')
         });
       }
-    } else if (typeText.includes('yellow') || typeText.includes('caution')) {
-      const pl = athletes[0];
-      if (pl) events.push({type:'yellow', player: pl.displayName||pl.athlete?.displayName||'', team: teamCode, minute, minuteStr: clockStr||'?'});
-    } else if (typeText.includes('red') || typeText.includes('ejection')) {
-      const pl = athletes[0];
-      if (pl) events.push({type:'red', player: pl.displayName||pl.athlete?.displayName||'', team: teamCode, minute, minuteStr: clockStr||'?'});
+    } else if (typeType === 'yellow-card' || typeType.includes('yellow')) {
+      const pl = participants[0];
+      const name = pl?.athlete?.displayName || pl?.displayName || '';
+      if (name) events.push({type:'yellow', player:name, team:teamCode, minute, minuteStr});
+    } else if (typeType === 'red-card' || typeType.includes('red')) {
+      const pl = participants[0];
+      const name = pl?.athlete?.displayName || pl?.displayName || '';
+      if (name) events.push({type:'red', player:name, team:teamCode, minute, minuteStr});
     }
   });
   return events.sort((a,b) => a.minute - b.minute);
@@ -567,7 +592,8 @@ async function loadAllStats() {
   STATS_LOADING = true;
   document.getElementById('stats-content').innerHTML = `<div class="stats-loading">⚽ Завантаження статистики...</div>`;
 
-  const pending = M.filter(m => m.g && SC[m.id]?.espnId && !ME[m.id]);
+  // Re-fetch all completed matches (clears stale empty-array cache)
+  const pending = M.filter(m => m.g && SC[m.id]?.espnId);
   for (const m of pending) {
     await fetchMatchSummary(SC[m.id].espnId, m.id, m.h, m.a);
   }
