@@ -26,7 +26,7 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; b
 
 .page { display: none; }
 .page.active { display: block; }
-#today-page, #schedule-page, #groups-page, #knockout-page { max-height: calc(100vh - 112px); overflow-y: auto; }
+#today-page, #schedule-page, #groups-page, #knockout-page, #stats-page { max-height: calc(100vh - 112px); overflow-y: auto; }
 
 .day-header { padding: 7px 14px; background: #f8fafc; border-bottom: 1px solid #e2e8f0; border-top: 1px solid #e2e8f0; font-size: 11px; font-weight: 700; color: #1d4ed8; text-transform: uppercase; letter-spacing: 0.5px; position: sticky; top: 0; z-index: 5; }
 
@@ -78,6 +78,32 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; b
 .leg-dot { width: 10px; height: 10px; border-radius: 2px; flex-shrink: 0; }
 .empty { text-align: center; padding: 40px 20px; color: #6b7280; }
 .empty .icon { font-size: 36px; margin-bottom: 10px; }
+
+/* Stats */
+.stats-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 12px; padding: 12px; }
+.stats-card { background: white; border-radius: 8px; border: 1px solid #e2e8f0; box-shadow: 0 1px 3px rgba(0,0,0,0.07); overflow: hidden; }
+.stats-card-title { background: linear-gradient(135deg, #1e3a8a, #1d4ed8); color: white; padding: 8px 12px; font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; display: flex; justify-content: space-between; align-items: center; }
+.stats-tbl { width: 100%; border-collapse: collapse; }
+.stats-tbl tr:last-child td { border-bottom: none; }
+.stats-tbl td { padding: 7px 10px; border-bottom: 1px solid #f1f5f9; font-size: 12px; vertical-align: middle; }
+.bar-chart { padding: 10px 12px; }
+.bar-row { display: flex; align-items: center; gap: 8px; margin-bottom: 7px; font-size: 11px; }
+.bar-label { min-width: 38px; color: #6b7280; font-weight: 600; text-align: right; white-space: nowrap; }
+.bar-track { flex: 1; background: #f1f5f9; border-radius: 3px; height: 16px; overflow: hidden; }
+.bar-fill { height: 100%; background: linear-gradient(90deg, #1d4ed8, #60a5fa); border-radius: 3px; }
+.bar-count { min-width: 20px; font-weight: 700; color: #374151; }
+.stats-loading { text-align: center; padding: 50px 20px; color: #6b7280; }
+.stats-meta { padding: 6px 12px; background: #f8fafc; border-bottom: 1px solid #e2e8f0; font-size: 11px; color: #6b7280; display: flex; justify-content: space-between; align-items: center; }
+.refresh-btn { background: none; border: 1px solid #cbd5e1; color: #475569; font-size: 11px; padding: 2px 8px; border-radius: 4px; cursor: pointer; }
+.refresh-btn:hover { background: #f1f5f9; }
+
+/* Match events (goals/cards inline) */
+.match-wrap { background: white; border-bottom: 1px solid #f1f5f9; }
+.match-wrap:hover, .match-wrap:hover .match-events { background: #f8fafc; }
+.match-wrap .match-row { border-bottom: none; background: transparent; }
+.match-events { padding: 0 12px 7px 66px; display: flex; flex-direction: column; gap: 3px; }
+.evs-row { display: flex; align-items: center; gap: 5px; flex-wrap: wrap; font-size: 11px; color: #374151; line-height: 1.4; }
+.ev-flag { font-size: 13px; flex-shrink: 0; }
 </style>
 </head>
 <body>
@@ -94,11 +120,13 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; b
   <div class="tab" onclick="showPage('schedule')">📋 Розклад</div>
   <div class="tab" onclick="showPage('groups')">🏆 Групи</div>
   <div class="tab" onclick="showPage('knockout')">⚡ Плей-офф</div>
+  <div class="tab" onclick="showPage('stats')">📊 Статистика</div>
 </div>
 <div id="today-page" class="page active"><div id="today-content"></div></div>
 <div id="schedule-page" class="page"><div id="schedule-content"></div></div>
 <div id="groups-page" class="page"><div id="groups-content"></div></div>
 <div id="knockout-page" class="page"><div id="knockout-content"></div></div>
+<div id="stats-page" class="page"><div id="stats-content"></div></div>
 
 <script>
 const TEAMS = {
@@ -243,6 +271,34 @@ const ROUND_NAMES = {'1/32':'1/16 Фіналу','1/16':'1/8 Фіналу','1/4':
 // Scores cache
 let SC = {};
 
+// ESPN team code mappings (global so stats code can reuse)
+const ESPN_ABBR = {
+  MEX:'MEX', RSA:'RSA', ZAF:'RSA', KOR:'KOR', CZE:'CZE',
+  CAN:'CAN', BIH:'BIH', BOS:'BIH', QAT:'QAT', SUI:'SUI', SWI:'SUI',
+  BRA:'BRA', MAR:'MAR', MOR:'MAR', HAI:'HAI', SCO:'SCO',
+  USA:'USA', PAR:'PAR', AUS:'AUS', TUR:'TUR',
+  GER:'GER', CUW:'CUW', CUR:'CUW', CIV:'CIV', IVC:'CIV', ECU:'ECU',
+  NED:'NED', HOL:'NED', JPN:'JPN', SWE:'SWE', TUN:'TUN',
+  BEL:'BEL', EGY:'EGY', IRN:'IRN', IRI:'IRN', NZL:'NZL',
+  ESP:'ESP', CPV:'CPV', KSA:'KSA', SAU:'KSA', URU:'URU',
+  FRA:'FRA', SEN:'SEN', IRQ:'IRQ', NOR:'NOR',
+  ARG:'ARG', ALG:'ALG', AUT:'AUT', JOR:'JOR',
+  POR:'POR', COD:'COD', DRC:'COD', UZB:'UZB', COL:'COL',
+  ENG:'ENG', CRO:'CRO', GHA:'GHA', PAN:'PAN', PHI:'PAN'
+};
+const ESPN_NAME_MAP = {
+  'south africa':'RSA','south korea':'KOR','korea republic':'KOR',
+  'czechia':'CZE','czech republic':'CZE','bosnia and herzegovina':'BIH',
+  'bosnia-herzegovina':'BIH','ivory coast':'CIV',"cote d'ivoire":'CIV',
+  "côte d'ivoire":'CIV','new zealand':'NZL','cape verde':'CPV',
+  'saudi arabia':'KSA','united states':'USA','turkiye':'TUR',
+  'curacao':'CUW','curaçao':'CUW','dr congo':'COD',
+  'iran':'IRN','iran islamic republic':'IRN'
+};
+function mc(abbr, name) {
+  return ESPN_ABBR[abbr] || ESPN_NAME_MAP[(name||'').toLowerCase().trim()] || abbr;
+}
+
 
 // ===================== UTILS =====================
 function kyiv(u) { return new Date(new Date(u).getTime() + 3*3600000); }
@@ -268,6 +324,27 @@ function mStatus(m) {
 }
 
 // ===================== MATCH ROW =====================
+function evSpan(e) {
+  const icon = e.type==='goal'||e.type==='own_goal' ? '⚽' : e.type==='yellow' ? '🟨' : '🟥';
+  const suffix = e.pen ? '(п)' : e.type==='own_goal' ? '(а.г.)' : '';
+  const lastName = (e.player||'').split(' ').slice(-1)[0];
+  const assist = e.assist ? `<span style="color:#9ca3af"> (${e.assist.split(' ').slice(-1)[0]})</span>` : '';
+  return `<span style="white-space:nowrap">${icon}&nbsp;<b>${lastName}</b>&nbsp;${e.minuteStr}${suffix?'&nbsp;'+suffix:''}${assist}</span>`;
+}
+
+function mEventsHtml(m) {
+  const evs = ME[m.id];
+  if (!evs || !evs.length) return '';
+  const homeEvs = evs.filter(e => e.team === m.h);
+  const awayEvs = evs.filter(e => e.team === m.a);
+  const ht = T(m.h), at = T(m.a);
+  let html = '<div class="match-events">';
+  if (homeEvs.length) html += `<div class="evs-row"><span class="ev-flag">${ht.f}</span>${homeEvs.map(evSpan).join(' ')}</div>`;
+  if (awayEvs.length) html += `<div class="evs-row"><span class="ev-flag">${at.f}</span>${awayEvs.map(evSpan).join(' ')}</div>`;
+  html += '</div>';
+  return html;
+}
+
 function mRow(m) {
   const st = mStatus(m);
   const sc = SC[m.id];
@@ -294,6 +371,10 @@ function mRow(m) {
     badge = m.r==='final' ? `<span class="final-badge">Фінал</span>` : `<span class="round-badge">${ROUND_NAMES[m.r]||m.r}</span>`;
   }
 
+  const evHtml = m.g ? mEventsHtml(m) : '';
+  if (evHtml) {
+    return `<div class="match-wrap"><div class="match-row">${tHtml}${body}<div class="match-badge">${badge}</div></div>${evHtml}</div>`;
+  }
   return `<div class="match-row">${tHtml}${body}<div class="match-badge">${badge}</div></div>`;
 }
 
@@ -381,35 +462,57 @@ function rKnockout() {
   document.getElementById('knockout-content').innerHTML = h;
 }
 
+// Match Events cache: {matchId: [{type,player,team,minute,minuteStr,assist,pen}]}
+const ME = {};
+
+function parseEvents(data, homeCode, awayCode) {
+  const events = [];
+  const keyEvents = data?.keyEvents || [];
+  keyEvents.forEach(ev => {
+    const typeText = (ev.type?.text || '').toLowerCase();
+    const clockStr = ev.clock?.displayValue || '';
+    const minute = parseInt(clockStr) || 0;
+    const athletes = ev.athletesInvolved || [];
+    let teamCode = ev.team?.abbreviation ? (ESPN_ABBR[ev.team.abbreviation] || ev.team.abbreviation) : null;
+
+    if (ev.scoringPlay || typeText.includes('goal')) {
+      const scorer = athletes.find(a => (a.type?.text||'').toLowerCase().includes('scorer')) || athletes[0];
+      const assistant = athletes.find(a => (a.type?.text||'').toLowerCase().includes('assist'));
+      const isOG = typeText.includes('own');
+      if (scorer) {
+        events.push({
+          type: isOG ? 'own_goal' : 'goal',
+          player: scorer.displayName || scorer.athlete?.displayName || '',
+          team: teamCode || homeCode,
+          minute, minuteStr: clockStr || '?',
+          assist: assistant ? (assistant.displayName || assistant.athlete?.displayName || null) : null,
+          pen: typeText.includes('penalty') || typeText.includes('pen')
+        });
+      }
+    } else if (typeText.includes('yellow') || typeText.includes('caution')) {
+      const pl = athletes[0];
+      if (pl) events.push({type:'yellow', player: pl.displayName||pl.athlete?.displayName||'', team: teamCode, minute, minuteStr: clockStr||'?'});
+    } else if (typeText.includes('red') || typeText.includes('ejection')) {
+      const pl = athletes[0];
+      if (pl) events.push({type:'red', player: pl.displayName||pl.athlete?.displayName||'', team: teamCode, minute, minuteStr: clockStr||'?'});
+    }
+  });
+  return events.sort((a,b) => a.minute - b.minute);
+}
+
+async function fetchMatchSummary(espnId, matchId, homeCode, awayCode) {
+  try {
+    const r = await fetch(`https://site.api.espn.com/apis/site/v2/sports/soccer/FIFA.World/summary?event=${espnId}`);
+    if (!r.ok) return;
+    const data = await r.json();
+    ME[matchId] = parseEvents(data, homeCode, awayCode);
+    render(curPage);
+    if (curPage === 'stats') rStats();
+  } catch(e) {}
+}
+
 // ===================== LIVE SCORES =====================
 async function fetchScores() {
-  const espnAbbr = {
-    MEX:'MEX', RSA:'RSA', ZAF:'RSA', KOR:'KOR', CZE:'CZE',
-    CAN:'CAN', BIH:'BIH', BOS:'BIH', QAT:'QAT', SUI:'SUI', SWI:'SUI',
-    BRA:'BRA', MAR:'MAR', MOR:'MAR', HAI:'HAI', SCO:'SCO',
-    USA:'USA', PAR:'PAR', AUS:'AUS', TUR:'TUR',
-    GER:'GER', CUW:'CUW', CUR:'CUW', CIV:'CIV', IVC:'CIV', ECU:'ECU',
-    NED:'NED', HOL:'NED', JPN:'JPN', SWE:'SWE', TUN:'TUN',
-    BEL:'BEL', EGY:'EGY', IRN:'IRN', IRI:'IRN', NZL:'NZL',
-    ESP:'ESP', CPV:'CPV', KSA:'KSA', SAU:'KSA', URU:'URU',
-    FRA:'FRA', SEN:'SEN', IRQ:'IRQ', NOR:'NOR',
-    ARG:'ARG', ALG:'ALG', AUT:'AUT', JOR:'JOR',
-    POR:'POR', COD:'COD', DRC:'COD', UZB:'UZB', COL:'COL',
-    ENG:'ENG', CRO:'CRO', GHA:'GHA', PAN:'PAN', PHI:'PAN'
-  };
-  const nameMap = {
-    'south africa':'RSA','south korea':'KOR','korea republic':'KOR',
-    'czechia':'CZE','czech republic':'CZE','bosnia and herzegovina':'BIH',
-    'bosnia-herzegovina':'BIH','ivory coast':'CIV',"cote d'ivoire":'CIV',
-    "côte d'ivoire":'CIV','new zealand':'NZL','cape verde':'CPV',
-    'saudi arabia':'KSA','united states':'USA','turkiye':'TUR',
-    'curacao':'CUW','curaçao':'CUW','dr congo':'COD',
-    'iran':'IRN','iran islamic republic':'IRN'
-  };
-  function mc(abbr, name) {
-    return espnAbbr[abbr] || nameMap[(name||'').toLowerCase().trim()] || abbr;
-  }
-
   async function fetchDay(date) {
     try {
       const r = await fetch(`https://site.api.espn.com/apis/site/v2/sports/soccer/FIFA.World/scoreboard?dates=${date}`);
@@ -423,6 +526,7 @@ async function fetchScores() {
   const dates  = today !== yest ? [today, yest] : [today];
 
   let anyEvents = false;
+  const toFetch = [];
   for (const date of dates) {
     const data = await fetchDay(date);
     if (!data?.events?.length) continue;
@@ -440,7 +544,8 @@ async function fetchScores() {
       const live = /In Progress|Half|Extra Time|Overtime/i.test(desc);
       const done = /Final|Full Time|FT|Post|Ended/i.test(desc);
       if (live || done) {
-        SC[match.id] = {h:homeC.score||'0', a:awayC.score||'0', live:!!live, done:!!done};
+        SC[match.id] = {h:homeC.score||'0', a:awayC.score||'0', live:!!live, done:!!done, espnId: ev.id};
+        if (!ME[match.id]) toFetch.push({matchId: match.id, espnId: ev.id, h: match.h, a: match.a});
       }
     });
   }
@@ -448,13 +553,110 @@ async function fetchScores() {
   document.getElementById('last-updated').textContent =
     `${anyEvents?'Оновлено':'Перевірено'} о ${new Date().toLocaleTimeString('uk-UA')}`;
   if (anyEvents) { rToday(); rSchedule(); rGroups(); rKnockout(); }
+
+  for (const item of toFetch) {
+    fetchMatchSummary(item.espnId, item.matchId, item.h, item.a);
+  }
+}
+
+// ===================== STATS =====================
+let STATS_LOADING = false;
+
+async function loadAllStats() {
+  if (STATS_LOADING) return;
+  STATS_LOADING = true;
+  document.getElementById('stats-content').innerHTML = `<div class="stats-loading">⚽ Завантаження статистики...</div>`;
+
+  const pending = M.filter(m => m.g && SC[m.id]?.espnId && !ME[m.id]);
+  for (const m of pending) {
+    await fetchMatchSummary(SC[m.id].espnId, m.id, m.h, m.a);
+  }
+  STATS_LOADING = false;
+  rStats();
+}
+
+function rStats() {
+  const completedIds = M.filter(m => m.g && SC[m.id]?.done).map(m => m.id);
+  const hasSummaries = completedIds.some(id => ME[id]);
+
+  if (!hasSummaries) {
+    const pending = completedIds.filter(id => SC[id]?.espnId && !ME[id]);
+    if (pending.length > 0 || completedIds.length === 0) {
+      if (!STATS_LOADING) loadAllStats();
+      return;
+    }
+    document.getElementById('stats-content').innerHTML = `<div class="stats-loading">Дані матчів ще недоступні</div>`;
+    return;
+  }
+
+  const scorers = {}, assists = {}, yellows = {}, reds = {};
+  const goalMins = new Array(7).fill(0);
+
+  completedIds.forEach(id => {
+    const evs = ME[id]; if (!evs) return;
+    evs.forEach(e => {
+      if (!e.player) return;
+      const k = e.player;
+      const teamFlag = T(e.team).f;
+      if (e.type === 'goal' || e.type === 'own_goal') {
+        if (!scorers[k]) scorers[k] = {goals:0, team:e.team, flag:teamFlag};
+        scorers[k].goals++;
+        const b = e.minute<=15?0:e.minute<=30?1:e.minute<=45?2:e.minute<=60?3:e.minute<=75?4:e.minute<=90?5:6;
+        goalMins[b]++;
+        if (e.assist) {
+          if (!assists[e.assist]) assists[e.assist] = {assists:0, team:e.team, flag:teamFlag};
+          assists[e.assist].assists++;
+        }
+      } else if (e.type === 'yellow') {
+        if (!yellows[k]) yellows[k] = {cards:0, team:e.team, flag:teamFlag};
+        yellows[k].cards++;
+      } else if (e.type === 'red') {
+        if (!reds[k]) reds[k] = {cards:0, team:e.team, flag:teamFlag};
+        reds[k].cards++;
+      }
+    });
+  });
+
+  function playerRows(obj, key, icon) {
+    const sorted = Object.entries(obj).sort((a,b)=>b[1][key]-a[1][key]).slice(0,10);
+    if (!sorted.length) return '<div style="padding:10px 12px;font-size:12px;color:#9ca3af">Поки немає даних</div>';
+    let h = '<table class="stats-tbl">';
+    sorted.forEach(([name,d],i) => {
+      h += `<tr><td style="color:#9ca3af;font-weight:700;width:22px">${i+1}</td>
+        <td><div style="font-weight:600;font-size:12px">${name}</div>
+            <div style="font-size:10px;color:#6b7280">${d.flag} ${T(d.team).n}</div></td>
+        <td style="text-align:right;font-size:15px;font-weight:800">${icon}&nbsp;${d[key]}</td></tr>`;
+    });
+    return h + '</table>';
+  }
+
+  const buckets = ['1-15\'','16-30\'','31-45\'','46-60\'','61-75\'','76-90\'','90+\''];
+  const maxG = Math.max(...goalMins, 1);
+  let chart = '<div class="bar-chart">';
+  buckets.forEach((lbl,i) => {
+    const pct = Math.round(goalMins[i]/maxG*100);
+    chart += `<div class="bar-row"><div class="bar-label">${lbl}</div><div class="bar-track"><div class="bar-fill" style="width:${pct}%"></div></div><div class="bar-count">${goalMins[i]}</div></div>`;
+  });
+  chart += '</div>';
+
+  const matchCount = completedIds.filter(id => ME[id]).length;
+  let h = `<div class="stats-meta"><span>По ${matchCount} зіграних матчах</span><button class="refresh-btn" onclick="STATS_LOADING=false;loadAllStats()">🔄 Оновити</button></div>`;
+  h += '<div class="stats-grid">';
+  h += `<div class="stats-card"><div class="stats-card-title">⚽ Бомбардири</div>${playerRows(scorers,'goals','⚽')}</div>`;
+  h += `<div class="stats-card"><div class="stats-card-title">🎯 Асисти</div>${playerRows(assists,'assists','🎯')}</div>`;
+  h += `<div class="stats-card"><div class="stats-card-title">🟨 Жовті картки</div>${playerRows(yellows,'cards','🟨')}</div>`;
+  if (Object.keys(reds).length) h += `<div class="stats-card"><div class="stats-card-title">🟥 Червоні картки</div>${playerRows(reds,'cards','🟥')}</div>`;
+  h += `<div class="stats-card"><div class="stats-card-title">⏱ Голи по хвилинах</div>${chart}</div>`;
+  h += '</div>';
+  document.getElementById('stats-content').innerHTML = h;
 }
 
 // ===================== TABS =====================
+const PAGES = ['today','schedule','groups','knockout','stats'];
 let curPage = 'today';
 function showPage(p) {
   curPage = p;
-  document.querySelectorAll('.tab').forEach((t,i) => t.classList.toggle('active', ['today','schedule','groups','knockout'][i]===p));
+  document.querySelectorAll('.tab').forEach((t,i) => t.classList.toggle('active', PAGES[i]===p));
   document.querySelectorAll('.page').forEach(el => el.classList.remove('active'));
   document.getElementById(p+'-page').classList.add('active');
   render(p);
@@ -464,6 +666,7 @@ function render(p) {
   else if (p==='schedule') rSchedule();
   else if (p==='groups') rGroups();
   else if (p==='knockout') rKnockout();
+  else if (p==='stats') rStats();
 }
 
 // ===================== CLOCK =====================
