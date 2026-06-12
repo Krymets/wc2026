@@ -271,8 +271,32 @@ const ROUND_NAMES = {'1/32':'1/16 Фіналу','1/16':'1/8 Фіналу','1/4':
 // Scores cache
 let SC = {};
 const SC_KEY = 'wc2026_scores_v1';
-function scSave() { try { localStorage.setItem(SC_KEY, JSON.stringify(SC)); } catch(e){} }
+function scSave() { try { localStorage.setItem(SC_KEY, JSON.stringify(SC)); } catch(e){} fbScheduleSave(); }
 function scLoad() { try { const d=JSON.parse(localStorage.getItem(SC_KEY)||'{}'); Object.assign(SC,d); } catch(e){} }
+
+// ===================== FIREBASE =====================
+const FB_URL = 'https://wc2026-e52a4-default-rtdb.europe-west1.firebasedatabase.app';
+let _fbTimer = null;
+function fbScheduleSave() {
+  clearTimeout(_fbTimer);
+  _fbTimer = setTimeout(async () => {
+    try {
+      await Promise.all([
+        fetch(`${FB_URL}/sc.json`, {method:'PUT', headers:{'Content-Type':'application/json'}, body:JSON.stringify(SC)}),
+        fetch(`${FB_URL}/me.json`, {method:'PUT', headers:{'Content-Type':'application/json'}, body:JSON.stringify(ME)})
+      ]);
+    } catch(e) {}
+  }, 3000);
+}
+async function fbLoad() {
+  try {
+    const [sr, mr] = await Promise.all([fetch(`${FB_URL}/sc.json`), fetch(`${FB_URL}/me.json`)]);
+    let changed = false;
+    if (sr.ok) { const d=await sr.json(); if (d) { Object.assign(SC, d); localStorage.setItem(SC_KEY, JSON.stringify(SC)); changed=true; } }
+    if (mr.ok) { const d=await mr.json(); if (d) { Object.assign(ME, d); localStorage.setItem(ME_KEY, JSON.stringify(ME)); changed=true; } }
+    if (changed) { render(curPage); rSchedule(); rGroups(); rKnockout(); }
+  } catch(e) {}
+}
 
 // ESPN team code mappings (global so stats code can reuse)
 const ESPN_ABBR = {
@@ -512,7 +536,7 @@ function rKnockout() {
 // Match Events cache: {matchId: [{type,player,team,minute,minuteStr,assist,pen}]}
 const ME = {};
 const ME_KEY = 'wc2026_events_v1';
-function meSave() { try { localStorage.setItem(ME_KEY, JSON.stringify(ME)); } catch(e){} }
+function meSave() { try { localStorage.setItem(ME_KEY, JSON.stringify(ME)); } catch(e){} fbScheduleSave(); }
 function meLoad() { try { const d=JSON.parse(localStorage.getItem(ME_KEY)||'{}'); Object.assign(ME,d); } catch(e){} }
 
 function teamFromDisplayName(displayName) {
@@ -762,6 +786,7 @@ function init() {
   render('today'); rSchedule(); rGroups(); rKnockout();
   fetchScores();
   setInterval(fetchScores, 60000);
+  fbLoad();
 }
 
 if (document.readyState !== 'loading') init();
