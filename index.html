@@ -546,7 +546,7 @@ function parseEvents(data, homeCode, awayCode) {
 
 async function fetchMatchSummary(espnId, matchId, homeCode, awayCode) {
   try {
-    const r = await fetch(`https://site.api.espn.com/apis/site/v2/sports/soccer/FIFA.World/summary?event=${espnId}`);
+с    const r = await fetch(`https://site.api.espn.com/apis/site/v2/sports/soccer/FIFA.World/summary?event=${espnId}`, {cache:'no-store'});
     if (!r.ok) return;
     const data = await r.json();
     ME[matchId] = parseEvents(data, homeCode, awayCode);
@@ -560,7 +560,7 @@ async function fetchMatchSummary(espnId, matchId, homeCode, awayCode) {
 async function fetchScores() {
   async function fetchDay(date) {
     try {
-      const r = await fetch(`https://site.api.espn.com/apis/site/v2/sports/soccer/FIFA.World/scoreboard?dates=${date}`);
+      const r = await fetch(`https://site.api.espn.com/apis/site/v2/sports/soccer/FIFA.World/scoreboard?dates=${date}`, {cache:'no-store'});
       if (!r.ok) return null;
       return await r.json();
     } catch(e) { return null; }
