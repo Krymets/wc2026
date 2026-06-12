@@ -523,16 +523,15 @@ function teamFromDisplayName(displayName) {
 
 function parseEvents(data, homeCode, awayCode) {
   const events = [];
-  const keyEvents = data?.keyEvents || [];
+  const keyEvents = data?.keyEvents
+    || data?.header?.competitions?.[0]?.keyEvents
+    || [];
   keyEvents.forEach(ev => {
-    // ESPN soccer uses ev.type.type: "goal", "goal---header", "yellow-card", "red-card", etc.
-    const typeType = (ev.type?.type || '').toLowerCase();
+    const typeType = (ev.type?.type || ev.type?.description || '').toLowerCase();
     const clockStr = ev.clock?.displayValue || '';
     const minute = parseInt(clockStr) || Math.floor((ev.clock?.value || 0) / 60);
     const minuteStr = clockStr || '?';
-    // ESPN soccer summary: participants array, no type markers — [0]=scorer, [1]=assister
     const participants = ev.participants || ev.athletesInvolved || [];
-    // Team identified by displayName (no abbreviation in summary API)
     const teamCode = teamFromDisplayName(ev.team?.displayName) ||
                      (ev.team?.abbreviation ? (ESPN_ABBR[ev.team.abbreviation] || ev.team.abbreviation) : null);
 
@@ -541,16 +540,14 @@ function parseEvents(data, homeCode, awayCode) {
       const scorer = participants[0];
       const assistant = participants[1];
       const name = scorer?.athlete?.displayName || scorer?.displayName || '';
-      if (name) {
-        events.push({
-          type: typeType.includes('own-goal') ? 'own_goal' : 'goal',
-          player: name,
-          team: teamCode || homeCode,
-          minute, minuteStr,
-          assist: assistant?.athlete?.displayName || assistant?.displayName || null,
-          pen: typeType.includes('penalty')
-        });
-      }
+      events.push({
+        type: typeType.includes('own-goal') ? 'own_goal' : 'goal',
+        player: name || '?',
+        team: teamCode || homeCode,
+        minute, minuteStr,
+        assist: assistant?.athlete?.displayName || assistant?.displayName || null,
+        pen: typeType.includes('penalty')
+      });
     } else if (typeType === 'yellow-card' || typeType.includes('yellow')) {
       const pl = participants[0];
       const name = pl?.athlete?.displayName || pl?.displayName || '';
@@ -612,7 +609,17 @@ async function fetchScores() {
       if (live || done) {
         SC[match.id] = {h:homeC.score||'0', a:awayC.score||'0', live:!!live, done:!!done, espnId: ev.id};
         scSave();
-        if (!ME[match.id] || live) toFetch.push({matchId: match.id, espnId: ev.id, h: match.h, a: match.a});
+        if (!ME[match.id] || live) {
+          toFetch.push({matchId: match.id, espnId: ev.id, h: match.h, a: match.a});
+        } else if (!live) {
+          // stale cache: cached events give a different score than API — re-fetch
+          const comp = scoreFromEvents(match);
+          const act = SC[match.id];
+          if (comp && (comp.h !== act.h || comp.a !== act.a)) {
+            delete ME[match.id];
+            toFetch.push({matchId: match.id, espnId: ev.id, h: match.h, a: match.a});
+          }
+        }
       }
     });
   }
