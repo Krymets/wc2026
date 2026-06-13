@@ -282,7 +282,7 @@ body.dark .modal-stat .ms-lbl { color: #94a3b8; }
   <span style="display:flex;align-items:center;gap:6px">
     <button id="notif-btn" onclick="requestNotif()" title="Сповіщення">🔔</button>
     <button id="lang-btn" onclick="cycleLang()">🇬🇧</button>
-    <span id="last-updated">Завантаження...</span>
+    <span id="last-updated">...</span>
   </span>
 </div>
 <div class="tabs-shadow">
@@ -545,7 +545,7 @@ const I18N = {
     goals:'Голів', matches:'Матчів', avgGoal:'Гол/матч', topScorers:'Бомбардири',
     filterLbl:'🔍 Матчі:', conceded:'Пропустили', penStr:'пен.',
     favSave:'⭐ Зберегти', favClear:'⭐ Моя команда',
-    og:'а.г.', penEvt:'п', hr:'г', min:'хв',
+    og:'а.г.', penEvt:'п', hr:'г', min:'хв', loading:'Завантаження...', noStatsData:'Дані матчів ще недоступні',
     matchesDone:n=>`По ${n} зіграних матчах`,
     matchesLive:(d,l)=>`По ${d} зіграних + ${l} live матч${l>1?'ах':'і'}`,
     rounds:{'1/32':'1/16 Фіналу','1/16':'1/8 Фіналу','1/4':'Чвертьфінали','1/2':'Півфінали','3rd':'3-є місце','final':'Фінал'},
@@ -567,7 +567,7 @@ const I18N = {
     goals:'Goals', matches:'Matches', avgGoal:'Goals/match', topScorers:'Top Scorers',
     filterLbl:'🔍 Matches:', conceded:'Conceded', penStr:'pen.',
     favSave:'⭐ Save', favClear:'⭐ My team',
-    og:'o.g.', penEvt:'p', hr:'h', min:'min',
+    og:'o.g.', penEvt:'p', hr:'h', min:'min', loading:'Loading...', noStatsData:'Match data not available yet',
     matchesDone:n=>`From ${n} played matches`,
     matchesLive:(d,l)=>`From ${d} played + ${l} live match${l>1?'es':''}`,
     rounds:{'1/32':'Round of 32','1/16':'Round of 16','1/4':'Quarterfinals','1/2':'Semifinals','3rd':'3rd Place','final':'Final'},
@@ -581,10 +581,10 @@ function L(k) { return (I18N[LANG]||I18N.uk)[k]; }
 
 // ===================== TIMEZONE =====================
 const ZONES = [
-  {l:'Київ',tz:'Europe/Kyiv'},{l:'Варшава',tz:'Europe/Warsaw'},
-  {l:'Лондон',tz:'Europe/London'},{l:'UTC',tz:'UTC'},
-  {l:'Монреаль',tz:'America/Toronto'},{l:'Нью-Йорк',tz:'America/New_York'},
-  {l:'Лос-Анджелес',tz:'America/Los_Angeles'},{l:'Ванкувер',tz:'America/Vancouver'},
+  {l:'Київ',e:'Kyiv',tz:'Europe/Kyiv'},{l:'Варшава',e:'Warsaw',tz:'Europe/Warsaw'},
+  {l:'Лондон',e:'London',tz:'Europe/London'},{l:'UTC',e:'UTC',tz:'UTC'},
+  {l:'Монреаль',e:'Montreal',tz:'America/Toronto'},{l:'Нью-Йорк',e:'New York',tz:'America/New_York'},
+  {l:'Лос-Анджелес',e:'Los Angeles',tz:'America/Los_Angeles'},{l:'Ванкувер',e:'Vancouver',tz:'America/Vancouver'},
 ];
 let userTZ = localStorage.getItem('wc_tz') || 'Europe/Kyiv';
 function getTZOffset(tz, d) {
@@ -593,11 +593,12 @@ function getTZOffset(tz, d) {
   const utc = new Date(base.toLocaleString('en-US',{timeZone:'UTC'}));
   return (loc - utc) / 3600000;
 }
+function zoneLabel(z) { return LANG === 'en' ? (z.e || z.l) : z.l; }
 function cycleTZ() {
   const i = ZONES.findIndex(z => z.tz === userTZ);
   const next = ZONES[(i + 1) % ZONES.length];
   userTZ = next.tz; localStorage.setItem('wc_tz', userTZ);
-  document.getElementById('tz-city').textContent = next.l;
+  document.getElementById('tz-city').textContent = zoneLabel(next);
   updateAutoLabel(); tickClock();
   render(curPage); rSchedule(); rGroups(); rKnockout();
 }
@@ -658,6 +659,8 @@ function cycleLang() {
   document.getElementById('lang-btn').textContent = LANG === 'uk' ? '🇬🇧' : '🇺🇦';
   document.getElementById('header-title').textContent = L('title');
   document.getElementById('header-sub').textContent = L('sub');
+  const curZone = ZONES.find(z=>z.tz===userTZ);
+  if (curZone) document.getElementById('tz-city').textContent = zoneLabel(curZone);
   document.querySelectorAll('.tab').forEach((t,i) => t.textContent = L('tabs')[i]);
   updateAutoLabel(); updateFilterBar();
   render(curPage); rSchedule(); rGroups(); rKnockout();
@@ -1172,7 +1175,7 @@ let STATS_LOADING = false;
 async function loadAllStats() {
   if (STATS_LOADING) return;
   STATS_LOADING = true;
-  document.getElementById('stats-content').innerHTML = `<div class="stats-loading">⚽ Завантаження статистики...</div>`;
+  document.getElementById('stats-content').innerHTML = `<div class="stats-loading">⚽ ${L('loading')}</div>`;
 
   const pending = M.filter(m => m.g && SC[m.id]?.espnId && ME[m.id] === undefined);
   await Promise.all(pending.map(m => fetchMatchSummary(SC[m.id].espnId, m.id, m.h, m.a)));
@@ -1190,7 +1193,7 @@ function rStats() {
       if (!STATS_LOADING) loadAllStats();
       return;
     }
-    document.getElementById('stats-content').innerHTML = `<div class="stats-loading">Дані матчів ще недоступні</div>`;
+    document.getElementById('stats-content').innerHTML = `<div class="stats-loading">${L('noStatsData')}</div>`;
     return;
   }
 
@@ -1388,7 +1391,7 @@ async function init() {
   }
   // Restore timezone
   const tz = ZONES.find(z=>z.tz===userTZ);
-  if (tz) document.getElementById('tz-city').textContent = tz.l;
+  if (tz) document.getElementById('tz-city').textContent = zoneLabel(tz);
   if (LANG === 'en') {
     document.getElementById('lang-btn').textContent = '🇺🇦';
     document.getElementById('header-title').textContent = L('title');
