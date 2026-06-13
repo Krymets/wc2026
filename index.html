@@ -621,6 +621,7 @@ function mRow(m, countdown=false) {
 }
 
 let _todayScrolled = false;
+let _scheduleScroll = false;
 
 function top3Html() {
   const scorers = {};
@@ -681,13 +682,33 @@ function rSchedule() {
   const src = filterTeam ? M.filter(m => m.g && (m.h===filterTeam || m.a===filterTeam)) : M;
   const bd = {};
   src.forEach(m => { const k=kDateKey(m.u); (bd[k]=bd[k]||[]).push(m); });
+  const keys = Object.keys(bd).sort();
+
+  // Find anchor day: today, or last day with results, or first upcoming
+  const now = Date.now();
+  const tk = todayKey();
+  const anchorKey = bd[tk] ? tk
+    : keys.slice().reverse().find(k => bd[k].some(m => SC[m.id]?.done || SC[m.id]?.live))
+    || keys.find(k => bd[k].some(m => new Date(m.u).getTime() > now))
+    || null;
+
   let h = '';
-  Object.keys(bd).sort().forEach(k => {
-    const ms=bd[k];
-    h += `<div class="day-header">${kDateStr(ms[0].u)}</div>`;
+  keys.forEach(k => {
+    const ms = bd[k];
+    const anch = k === anchorKey ? ' id="sched-anchor"' : '';
+    h += `<div class="day-header"${anch}>${kDateStr(ms[0].u)}</div>`;
     ms.forEach(m => h += mRow(m));
   });
-  document.getElementById('schedule-content').innerHTML = h || `<div class="empty"><div class="icon">🔍</div><p>Матчів не знайдено</p></div>`;
+  const cont = document.getElementById('schedule-content');
+  cont.innerHTML = h || `<div class="empty"><div class="icon">🔍</div><p>Матчів не знайдено</p></div>`;
+
+  if (_scheduleScroll) {
+    _scheduleScroll = false;
+    requestAnimationFrame(() => {
+      const el = cont.querySelector('#sched-anchor');
+      if (el) el.scrollIntoView({behavior: 'smooth', block: 'start'});
+    });
+  }
 }
 
 function rGroups() {
@@ -1140,6 +1161,7 @@ function showPage(p, dir=0) {
   if (dir > 0) pageEl.classList.add('slide-r');
   else if (dir < 0) pageEl.classList.add('slide-l');
   pageEl.classList.add('active');
+  if (p === 'schedule') _scheduleScroll = true;
   // Scroll active tab to center of tab bar
   const tabsEl = document.querySelector('.tabs');
   const tab = document.querySelectorAll('.tab')[PAGES.indexOf(p)];
