@@ -779,7 +779,7 @@ function showToast(msg) {
 
 // Match Events cache: {matchId: [{type,player,team,minute,minuteStr,assist,pen}]}
 const ME = {};
-const ME_KEY = 'wc2026_events_v1';
+const ME_KEY = 'wc2026_events_v2';
 function meSave() { try { localStorage.setItem(ME_KEY, JSON.stringify(ME)); } catch(e){} fbScheduleSave(); }
 function meLoad() { try { const d=JSON.parse(localStorage.getItem(ME_KEY)||'{}'); Object.assign(ME,d); } catch(e){} }
 
