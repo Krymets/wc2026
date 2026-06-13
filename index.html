@@ -274,8 +274,8 @@ body.dark .modal-stat .ms-lbl { color: #94a3b8; }
 <div class="header">
   <a href="https://github.com/Krymets" class="header-stamp" target="_blank" rel="noopener"><span class="stamp-inner"><span class="stamp-by">by</span><span class="stamp-name">Krymets</span></span></a>
   <button id="dark-toggle" onclick="toggleDark()" title="Темна тема">🌙</button>
-  <h1>⚽ ЧЕМПІОНАТ СВІТУ 2026</h1>
-  <p>Канада · Мексика · США &nbsp;|&nbsp; 11 черв – 19 лип &nbsp;|&nbsp; <span id="tz-city" onclick="cycleTZ()">Київ</span>: <span id="clock">--:--</span></p>
+  <h1 id="header-title">⚽ ЧЕМПІОНАТ СВІТУ 2026</h1>
+  <p><span id="header-sub">Канада · Мексика · США &nbsp;|&nbsp; 11 черв – 19 лип</span> &nbsp;|&nbsp; <span id="tz-city" onclick="cycleTZ()">Київ</span>: <span id="clock">--:--</span></p>
 </div>
 <div class="status-bar">
   <span><span class="live-dot"></span><span id="auto-label">Автооновлення під час матчів · UTC+3</span></span>
@@ -310,18 +310,18 @@ body.dark .modal-stat .ms-lbl { color: #94a3b8; }
 
 <script>
 const TEAMS = {
-  MEX:{n:'Мексика',f:'🇲🇽'}, RSA:{n:'ПАР',f:'🇿🇦'}, KOR:{n:'Пд. Корея',f:'🇰🇷'}, CZE:{n:'Чехія',f:'🇨🇿'},
-  CAN:{n:'Канада',f:'🇨🇦'}, BIH:{n:'Боснія і Г.',f:'🇧🇦'}, QAT:{n:'Катар',f:'🇶🇦'}, SUI:{n:'Швейцарія',f:'🇨🇭'},
-  BRA:{n:'Бразилія',f:'🇧🇷'}, MAR:{n:'Марокко',f:'🇲🇦'}, HAI:{n:'Гаїті',f:'🇭🇹'}, SCO:{n:'Шотландія',f:'🏴󠁧󠁢󠁳󠁣󠁴󠁿'},
-  USA:{n:'США',f:'🇺🇸'}, PAR:{n:'Парагвай',f:'🇵🇾'}, AUS:{n:'Австралія',f:'🇦🇺'}, TUR:{n:'Туреччина',f:'🇹🇷'},
-  GER:{n:'Німеччина',f:'🇩🇪'}, CUW:{n:'Кюрасао',f:'🇨🇼'}, CIV:{n:"Кот-д'Івуар",f:'🇨🇮'}, ECU:{n:'Еквадор',f:'🇪🇨'},
-  NED:{n:'Нідерланди',f:'🇳🇱'}, JPN:{n:'Японія',f:'🇯🇵'}, SWE:{n:'Швеція',f:'🇸🇪'}, TUN:{n:'Туніс',f:'🇹🇳'},
-  BEL:{n:'Бельгія',f:'🇧🇪'}, EGY:{n:'Єгипет',f:'🇪🇬'}, IRN:{n:'Іран',f:'🇮🇷'}, NZL:{n:'Нова Зеландія',f:'🇳🇿'},
-  ESP:{n:'Іспанія',f:'🇪🇸'}, CPV:{n:'Кабо-Верде',f:'🇨🇻'}, KSA:{n:'Саудівська Ар.',f:'🇸🇦'}, URU:{n:'Уругвай',f:'🇺🇾'},
-  FRA:{n:'Франція',f:'🇫🇷'}, SEN:{n:'Сенегал',f:'🇸🇳'}, IRQ:{n:'Ірак',f:'🇮🇶'}, NOR:{n:'Норвегія',f:'🇳🇴'},
-  ARG:{n:'Аргентина',f:'🇦🇷'}, ALG:{n:'Алжир',f:'🇩🇿'}, AUT:{n:'Австрія',f:'🇦🇹'}, JOR:{n:'Йорданія',f:'🇯🇴'},
-  POR:{n:'Португалія',f:'🇵🇹'}, COD:{n:'ДР Конго',f:'🇨🇩'}, UZB:{n:'Узбекистан',f:'🇺🇿'}, COL:{n:'Колумбія',f:'🇨🇴'},
-  ENG:{n:'Англія',f:'🏴󠁧󠁢󠁥󠁮󠁧󠁿'}, CRO:{n:'Хорватія',f:'🇭🇷'}, GHA:{n:'Гана',f:'🇬🇭'}, PAN:{n:'Панама',f:'🇵🇦'}
+  MEX:{n:'Мексика',e:'Mexico',f:'🇲🇽'}, RSA:{n:'ПАР',e:'South Africa',f:'🇿🇦'}, KOR:{n:'Пд. Корея',e:'South Korea',f:'🇰🇷'}, CZE:{n:'Чехія',e:'Czech Republic',f:'🇨🇿'},
+  CAN:{n:'Канада',e:'Canada',f:'🇨🇦'}, BIH:{n:'Боснія і Г.',e:'Bosnia & Herz.',f:'🇧🇦'}, QAT:{n:'Катар',e:'Qatar',f:'🇶🇦'}, SUI:{n:'Швейцарія',e:'Switzerland',f:'🇨🇭'},
+  BRA:{n:'Бразилія',e:'Brazil',f:'🇧🇷'}, MAR:{n:'Марокко',e:'Morocco',f:'🇲🇦'}, HAI:{n:'Гаїті',e:'Haiti',f:'🇭🇹'}, SCO:{n:'Шотландія',e:'Scotland',f:'🏴󠁧󠁢󠁳󠁣󠁴󠁿'},
+  USA:{n:'США',e:'USA',f:'🇺🇸'}, PAR:{n:'Парагвай',e:'Paraguay',f:'🇵🇾'}, AUS:{n:'Австралія',e:'Australia',f:'🇦🇺'}, TUR:{n:'Туреччина',e:'Türkiye',f:'🇹🇷'},
+  GER:{n:'Німеччина',e:'Germany',f:'🇩🇪'}, CUW:{n:'Кюрасао',e:'Curaçao',f:'🇨🇼'}, CIV:{n:"Кот-д'Івуар",e:"Côte d'Ivoire",f:'🇨🇮'}, ECU:{n:'Еквадор',e:'Ecuador',f:'🇪🇨'},
+  NED:{n:'Нідерланди',e:'Netherlands',f:'🇳🇱'}, JPN:{n:'Японія',e:'Japan',f:'🇯🇵'}, SWE:{n:'Швеція',e:'Sweden',f:'🇸🇪'}, TUN:{n:'Туніс',e:'Tunisia',f:'🇹🇳'},
+  BEL:{n:'Бельгія',e:'Belgium',f:'🇧🇪'}, EGY:{n:'Єгипет',e:'Egypt',f:'🇪🇬'}, IRN:{n:'Іран',e:'Iran',f:'🇮🇷'}, NZL:{n:'Нова Зеландія',e:'New Zealand',f:'🇳🇿'},
+  ESP:{n:'Іспанія',e:'Spain',f:'🇪🇸'}, CPV:{n:'Кабо-Верде',e:'Cape Verde',f:'🇨🇻'}, KSA:{n:'Саудівська Ар.',e:'Saudi Arabia',f:'🇸🇦'}, URU:{n:'Уругвай',e:'Uruguay',f:'🇺🇾'},
+  FRA:{n:'Франція',e:'France',f:'🇫🇷'}, SEN:{n:'Сенегал',e:'Senegal',f:'🇸🇳'}, IRQ:{n:'Ірак',e:'Iraq',f:'🇮🇶'}, NOR:{n:'Норвегія',e:'Norway',f:'🇳🇴'},
+  ARG:{n:'Аргентина',e:'Argentina',f:'🇦🇷'}, ALG:{n:'Алжир',e:'Algeria',f:'🇩🇿'}, AUT:{n:'Австрія',e:'Austria',f:'🇦🇹'}, JOR:{n:'Йорданія',e:'Jordan',f:'🇯🇴'},
+  POR:{n:'Португалія',e:'Portugal',f:'🇵🇹'}, COD:{n:'ДР Конго',e:'DR Congo',f:'🇨🇩'}, UZB:{n:'Узбекистан',e:'Uzbekistan',f:'🇺🇿'}, COL:{n:'Колумбія',e:'Colombia',f:'🇨🇴'},
+  ENG:{n:'Англія',e:'England',f:'🏴󠁧󠁢󠁥󠁮󠁧󠁿'}, CRO:{n:'Хорватія',e:'Croatia',f:'🇭🇷'}, GHA:{n:'Гана',e:'Ghana',f:'🇬🇭'}, PAN:{n:'Панама',e:'Panama',f:'🇵🇦'}
 };
 
 const GROUPS = {
@@ -447,6 +447,16 @@ const M = [
 ];
 
 function roundName(r) { return (L('rounds')||{})[r] || r; }
+function matchLabel(m) {
+  if (LANG !== 'en' || !m.l) return m.l;
+  const CYR = {А:'A',Б:'B',В:'C',Г:'D',Д:'E',Є:'F',Ж:'G',З:'H',К:'J',Л:'K'};
+  return m.l
+    .replace('Кращий 3-й','Best 3rd').replace(/Кр\./g,'B3.')
+    .replace('1/16 Фіналу','R16').replace(/Чвертьфінал/g,'QF')
+    .replace(/Півфінал/g,'SF').replace('Матч за 3-є місце','3rd Place')
+    .replace('ФІНАЛ','FINAL')
+    .replace(/[А-ЯҐЄІЇа-яґєії]/g, c => CYR[c] || c);
+}
 
 // Scores cache
 let SC = {};
@@ -523,6 +533,7 @@ function mc(abbr, name) {
 const I18N = {
   uk:{
     tabs:['📅 Сьогодні','📋 Розклад','🏆 Групи','⚡ Плей-офф','📊 Статистика'],
+    title:'⚽ ЧЕМПІОНАТ СВІТУ 2026', sub:'Канада · Мексика · США  |  11 черв – 19 лип',
     todayHdr:'🗓 Сьогодні', nextHdr:'⏭ Наступні матчі', noToday:'Сьогодні матчів немає',
     done:'Чемпіонат завершено', final:'Кінець', noMatches:'Матчів не знайдено',
     updated:'Оновлено', checked:'Перевірено',
@@ -544,6 +555,7 @@ const I18N = {
   },
   en:{
     tabs:['📅 Today','📋 Schedule','🏆 Groups','⚡ Knockout','📊 Stats'],
+    title:'⚽ FIFA WORLD CUP 2026', sub:'Canada · Mexico · USA  |  Jun 11 – Jul 19',
     todayHdr:'🗓 Today', nextHdr:'⏭ Next matches', noToday:'No matches today',
     done:'Tournament over', final:'FT', noMatches:'No matches found',
     updated:'Updated', checked:'Checked',
@@ -644,6 +656,8 @@ function cycleLang() {
   LANG = LANG === 'uk' ? 'en' : 'uk';
   localStorage.setItem('wc_lang', LANG);
   document.getElementById('lang-btn').textContent = LANG === 'uk' ? '🇬🇧' : '🇺🇦';
+  document.getElementById('header-title').textContent = L('title');
+  document.getElementById('header-sub').textContent = L('sub');
   document.querySelectorAll('.tab').forEach((t,i) => t.textContent = L('tabs')[i]);
   updateAutoLabel(); updateFilterBar();
   render(curPage); rSchedule(); rGroups(); rKnockout();
@@ -657,7 +671,7 @@ function updateAutoLabel() {
 }
 function kDateKey(u) { const d=kyiv(u); return `${d.getUTCFullYear()}-${pad(d.getUTCMonth()+1)}-${pad(d.getUTCDate())}`; }
 function todayKey() { return kDateKey(new Date().toISOString()); }
-function T(c) { return TEAMS[c]||{n:c,f:'🏳'}; }
+function T(c) { const t=TEAMS[c]||{n:c,e:c,f:'🏳'}; return {n:LANG==='en'?(t.e||t.n):t.n, f:t.f}; }
 
 function mStatus(m) {
   const sc = SC[m.id];
@@ -771,7 +785,7 @@ function mRow(m, countdown=false) {
     </div>`;
     badge = `<span class="group-badge">${m.g}</span>`;
   } else {
-    body = `<div class="teams-block" style="justify-content:center;font-size:13px;font-weight:600;color:#374151;gap:0">${m.l}</div>`;
+    body = `<div class="teams-block" style="justify-content:center;font-size:13px;font-weight:600;color:#374151;gap:0">${matchLabel(m)}</div>`;
     badge = m.r==='final' ? `<span class="final-badge">Фінал</span>` : `<span class="round-badge">${roundName(m.r)}</span>`;
   }
 
@@ -1272,7 +1286,7 @@ function rStats() {
       const ga = teamConceded[c] || 0;
       cleanHtml += `<tr><td style="color:#9ca3af;font-weight:700;width:22px">${i+1}</td>
         <td><div style="font-weight:600;font-size:12px">${t.f} ${t.n}</div>
-            <div style="font-size:10px;color:#6b7280">Пропустили: ${ga}</div></td>
+            <div style="font-size:10px;color:#6b7280">${L('conceded')}: ${ga}</div></td>
         <td style="text-align:right;font-size:15px;font-weight:800">🛡&nbsp;${cnt}</td></tr>`;
     });
     cleanHtml += '</table>';
@@ -1351,7 +1365,7 @@ function tickClock() {
     const diff = new Date(el.dataset.kickoff).getTime() - Date.now();
     if (diff <= 0) { el.textContent = kTime(el.dataset.kickoff); el.removeAttribute('data-kickoff'); return; }
     const h = Math.floor(diff/3600000), mn = Math.floor((diff%3600000)/60000);
-    el.textContent = h > 0 ? `${h}г ${mn}хв` : `${mn} хв`;
+    el.textContent = h > 0 ? `${h}${L('hr')} ${mn}${L('min')}` : `${mn} ${L('min')}`;
   });
 }
 
@@ -1377,6 +1391,8 @@ async function init() {
   if (tz) document.getElementById('tz-city').textContent = tz.l;
   if (LANG === 'en') {
     document.getElementById('lang-btn').textContent = '🇺🇦';
+    document.getElementById('header-title').textContent = L('title');
+    document.getElementById('header-sub').textContent = L('sub');
     document.querySelectorAll('.tab').forEach((t,i) => t.textContent = L('tabs')[i]);
   }
   updateNotifBtn();
