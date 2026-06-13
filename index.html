@@ -797,7 +797,9 @@ function parseEvents(data, homeCode, awayCode) {
   keyEvents.forEach(ev => {
     const typeType = (ev.type?.type || ev.type?.description || '').toLowerCase();
     const clockStr = ev.clock?.displayValue || '';
-    const minute = parseInt(clockStr) || Math.floor((ev.clock?.value || 0) / 60);
+    const plusMatch = clockStr.match(/^(\d+)\+(\d+)$/);
+    const minute = plusMatch ? parseInt(plusMatch[1]) + parseInt(plusMatch[2])
+                             : parseInt(clockStr) || Math.floor((ev.clock?.value || 0) / 60);
     const minuteStr = clockStr || '?';
     const participants = ev.participants || ev.athletesInvolved || [];
     const teamCode = teamFromDisplayName(ev.team?.displayName) ||
