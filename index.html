@@ -711,14 +711,15 @@ function evAway(e) {
 function mEventsHtml(m) {
   const evs = ME[m.id];
   if (!evs || !evs.length) return '';
-  const homeEvs = evs.filter(e => e.team === m.h);
-  const awayEvs = evs.filter(e => e.team === m.a);
-  if (!homeEvs.length && !awayEvs.length) return '';
+  const relevant = evs.filter(e => e.team === m.h || e.team === m.a);
+  if (!relevant.length) return '';
   let rows = '';
-  const len = Math.max(homeEvs.length, awayEvs.length);
-  for (let i = 0; i < len; i++) {
-    rows += `<div class="ev-home">${homeEvs[i] ? evHome(homeEvs[i]) : ''}</div>`;
-    rows += `<div class="ev-away">${awayEvs[i] ? evAway(awayEvs[i]) : ''}</div>`;
+  for (const e of relevant) {
+    if (e.team === m.h) {
+      rows += `<div class="ev-home">${evHome(e)}</div><div class="ev-away"></div>`;
+    } else {
+      rows += `<div class="ev-home"></div><div class="ev-away">${evAway(e)}</div>`;
+    }
   }
   return `<div class="events-grid">${rows}</div>`;
 }
