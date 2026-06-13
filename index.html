@@ -240,10 +240,8 @@ body.dark .summary-chip .s-val { color: #60a5fa; }
 body.dark .summary-chip .s-lbl { color: #64748b; }
 body.dark .pen-score { color: #c084fc; }
 /* Language + notification buttons */
-#lang-btn { background: none; border: 1px solid rgba(255,255,255,0.35); color: white; font-size: 10px; font-weight: 700; padding: 2px 7px; border-radius: 4px; cursor: pointer; }
-#lang-btn:hover { background: rgba(255,255,255,0.15); }
+#lang-btn { background: none; border: none; font-size: 18px; cursor: pointer; padding: 0; line-height: 1; }
 #notif-btn { background: none; border: none; font-size: 15px; cursor: pointer; padding: 0; line-height: 1; }
-body.dark #lang-btn { border-color: rgba(255,255,255,0.2); }
 /* Timezone clickable in header */
 #tz-city { cursor: pointer; text-decoration: underline dotted rgba(255,255,255,0.5); text-underline-offset: 3px; }
 #tz-city:hover { text-decoration-color: white; }
@@ -283,7 +281,7 @@ body.dark .modal-stat .ms-lbl { color: #94a3b8; }
   <span><span class="live-dot"></span><span id="auto-label">Автооновлення під час матчів · UTC+3</span></span>
   <span style="display:flex;align-items:center;gap:6px">
     <button id="notif-btn" onclick="requestNotif()" title="Сповіщення">🔔</button>
-    <button id="lang-btn" onclick="cycleLang()">EN</button>
+    <button id="lang-btn" onclick="cycleLang()">🇬🇧</button>
     <span id="last-updated">Завантаження...</span>
   </span>
 </div>
@@ -536,6 +534,7 @@ const I18N = {
     goals:'Голів', matches:'Матчів', avgGoal:'Гол/матч', topScorers:'Бомбардири',
     filterLbl:'🔍 Матчі:', conceded:'Пропустили', penStr:'пен.',
     favSave:'⭐ Зберегти', favClear:'⭐ Моя команда',
+    og:'а.г.', penEvt:'п', hr:'г', min:'хв',
     matchesDone:n=>`По ${n} зіграних матчах`,
     matchesLive:(d,l)=>`По ${d} зіграних + ${l} live матч${l>1?'ах':'і'}`,
     rounds:{'1/32':'1/16 Фіналу','1/16':'1/8 Фіналу','1/4':'Чвертьфінали','1/2':'Півфінали','3rd':'3-є місце','final':'Фінал'},
@@ -546,7 +545,7 @@ const I18N = {
   en:{
     tabs:['📅 Today','📋 Schedule','🏆 Groups','⚡ Knockout','📊 Stats'],
     todayHdr:'🗓 Today', nextHdr:'⏭ Next matches', noToday:'No matches today',
-    done:'Tournament over', final:'Final', noMatches:'No matches found',
+    done:'Tournament over', final:'FT', noMatches:'No matches found',
     updated:'Updated', checked:'Checked',
     autoOn:'Auto-update every minute', autoOff:'Auto-update during matches',
     group:'Group', advQ:'Advance to knockout (1st, 2nd)', adv3:'Possible advance (3rd)',
@@ -556,6 +555,7 @@ const I18N = {
     goals:'Goals', matches:'Matches', avgGoal:'Goals/match', topScorers:'Top Scorers',
     filterLbl:'🔍 Matches:', conceded:'Conceded', penStr:'pen.',
     favSave:'⭐ Save', favClear:'⭐ My team',
+    og:'o.g.', penEvt:'p', hr:'h', min:'min',
     matchesDone:n=>`From ${n} played matches`,
     matchesLive:(d,l)=>`From ${d} played + ${l} live match${l>1?'es':''}`,
     rounds:{'1/32':'Round of 32','1/16':'Round of 16','1/4':'Quarterfinals','1/2':'Semifinals','3rd':'3rd Place','final':'Final'},
@@ -643,7 +643,7 @@ function kDateStr(u) {
 function cycleLang() {
   LANG = LANG === 'uk' ? 'en' : 'uk';
   localStorage.setItem('wc_lang', LANG);
-  document.getElementById('lang-btn').textContent = LANG === 'uk' ? 'EN' : 'УК';
+  document.getElementById('lang-btn').textContent = LANG === 'uk' ? '🇬🇧' : '🇺🇦';
   document.querySelectorAll('.tab').forEach((t,i) => t.textContent = L('tabs')[i]);
   updateAutoLabel(); updateFilterBar();
   render(curPage); rSchedule(); rGroups(); rKnockout();
@@ -673,7 +673,7 @@ function evIcon(e) {
   return e.type==='goal'||e.type==='own_goal' ? '⚽' : e.type==='yellow' ? '🟨' : '🟥';
 }
 function evSuffix(e) {
-  return e.pen ? ' (п)' : e.type==='own_goal' ? ' (а.г.)' : '';
+  return e.pen ? ` (${L('penEvt')})` : e.type==='own_goal' ? ` (${L('og')})` : '';
 }
 function evName(e) {
   return (e.player||'').split(' ').slice(-1)[0];
@@ -727,12 +727,12 @@ function mRow(m, countdown=false) {
     const liveMin = sc?.min ? sc.min : 'LIVE';
     tHtml = `<div class="match-time live-time"><span class="live-badge">⚽ ${liveMin}</span>${venue}</div>`;
   } else if (st==='done') {
-    tHtml = `<div class="match-time done-time"><span>Кінець</span>${venue}</div>`;
+    tHtml = `<div class="match-time done-time"><span>${L('final')}</span>${venue}</div>`;
   } else if (countdown) {
     const diff = new Date(m.u).getTime() - Date.now();
     if (diff > 0 && diff < 24*3600000) {
       const h = Math.floor(diff/3600000), mn = Math.floor((diff%3600000)/60000);
-      const txt = h > 0 ? `${h}г ${mn}хв` : `${mn} хв`;
+      const txt = h > 0 ? `${h}${L('hr')} ${mn}${L('min')}` : `${mn} ${L('min')}`;
       tHtml = `<div class="match-time countdown-time" data-kickoff="${m.u}"><span>${txt}</span>${venue}</div>`;
     } else {
       tHtml = `<div class="match-time"><span>${kTime(m.u)}</span>${venue}</div>`;
@@ -871,7 +871,7 @@ function rSchedule() {
     ms.forEach(m => h += mRow(m));
   });
   const cont = document.getElementById('schedule-content');
-  cont.innerHTML = h || `<div class="empty"><div class="icon">🔍</div><p>Матчів не знайдено</p></div>`;
+  cont.innerHTML = h || `<div class="empty"><div class="icon">🔍</div><p>${L('noMatches')}</p></div>`;
 
   if (_scheduleScroll) {
     _scheduleScroll = false;
@@ -1377,7 +1377,7 @@ async function init() {
   if (tz) document.getElementById('tz-city').textContent = tz.l;
   // Restore language
   if (LANG === 'en') {
-    document.getElementById('lang-btn').textContent = 'УК';
+    document.getElementById('lang-btn').textContent = '🇺🇦';
     document.querySelectorAll('.tab').forEach((t,i) => t.textContent = L('tabs')[i]);
   }
   updateNotifBtn();
