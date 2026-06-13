@@ -783,7 +783,7 @@ const ME_KEY = 'wc2026_events_v2';
 function meSave() { try { localStorage.setItem(ME_KEY, JSON.stringify(ME)); } catch(e){} fbScheduleSave(); }
 function fixMinutes(d) {
   Object.values(d).forEach(evs => evs.forEach(e => {
-    const pm = (e.minuteStr||'').match(/^(\d+)\+(\d+)$/);
+    const pm = (e.minuteStr||'').match(/^(\d+)'?\+(\d+)/);
     if (pm) e.minute = parseInt(pm[1]) + parseInt(pm[2]);
   }));
 }
@@ -803,7 +803,7 @@ function parseEvents(data, homeCode, awayCode) {
   keyEvents.forEach(ev => {
     const typeType = (ev.type?.type || ev.type?.description || '').toLowerCase();
     const clockStr = ev.clock?.displayValue || '';
-    const plusMatch = clockStr.match(/^(\d+)\+(\d+)$/);
+    const plusMatch = clockStr.match(/^(\d+)'?\+(\d+)/);
     const minute = plusMatch ? parseInt(plusMatch[1]) + parseInt(plusMatch[2])
                              : parseInt(clockStr) || Math.floor((ev.clock?.value || 0) / 60);
     const minuteStr = clockStr || '?';
