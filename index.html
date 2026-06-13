@@ -223,7 +223,7 @@ body.dark .top3-item .t3-team { color: #64748b; }
   <p>Канада · Мексика · США &nbsp;|&nbsp; 11 черв – 19 лип &nbsp;|&nbsp; Київ: <span id="clock">--:--</span></p>
 </div>
 <div class="status-bar">
-  <span><span class="live-dot"></span>Автооновлення кожну хвилину · UTC+3</span>
+  <span><span class="live-dot"></span><span id="auto-label">Автооновлення під час матчів · UTC+3</span></span>
   <span id="last-updated">Завантаження...</span>
 </div>
 <div class="tabs-shadow">
@@ -914,6 +914,8 @@ async function fetchScores() {
 
   document.getElementById('last-updated').textContent =
     `${anyEvents?'Оновлено':'Перевірено'} о ${new Date().toLocaleTimeString('uk-UA')}`;
+  document.getElementById('auto-label').textContent =
+    shouldFetchNow() ? 'Автооновлення кожну хвилину · UTC+3' : 'Автооновлення під час матчів · UTC+3';
   if (anyEvents) { rToday(); rSchedule(); rGroups(); rKnockout(); if (curPage==='stats') rStats(); }
 }
 
