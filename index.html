@@ -1098,8 +1098,8 @@ function rStats() {
     : `По ${doneCount} зіграних матчах`;
 
   // Tournament summary
-  const totalGoals = Object.values(SC).reduce((s,sc) => s+(parseInt(sc.h)||0)+(parseInt(sc.a)||0), 0);
-  const doneMatchCount = Object.values(SC).filter(s=>s.done).length;
+  const totalGoals = Object.values(SC).reduce((s,sc) => sc ? s+(parseInt(sc.h)||0)+(parseInt(sc.a)||0) : s, 0);
+  const doneMatchCount = Object.values(SC).filter(s=>s?.done).length;
   const avgGoals = doneMatchCount > 0 ? (totalGoals/doneMatchCount).toFixed(1) : '—';
   const totalYlw = Object.values(yellows).reduce((s,d)=>s+d.cards,0);
   const totalRed = Object.values(reds).reduce((s,d)=>s+d.cards,0);
