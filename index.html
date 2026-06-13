@@ -19,7 +19,10 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; b
 .live-dot { display: inline-block; width:7px; height:7px; background:#ef4444; border-radius:50%; margin-right:5px; animation: blink 1.2s infinite; }
 @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0.2} }
 
-.tabs { background: white; border-bottom: 2px solid #e2e8f0; display: flex; overflow-x: auto; }
+.tabs { background: white; border-bottom: 2px solid #e2e8f0; display: flex; overflow-x: auto; scrollbar-width: none; position: relative; }
+.tabs::-webkit-scrollbar { display: none; }
+.tabs-shadow { position: relative; }
+.tabs-shadow::after { content:''; position: absolute; right: 0; top: 0; height: 100%; width: 28px; background: linear-gradient(to right, transparent, white); pointer-events: none; z-index: 2; }
 .tab { padding: 10px 16px; font-size: 13px; font-weight: 600; cursor: pointer; border-bottom: 2px solid transparent; margin-bottom: -2px; color: #64748b; white-space: nowrap; user-select: none; transition: color 0.15s; }
 .tab:hover { color: #1d4ed8; }
 .tab.active { color: #1d4ed8; border-bottom-color: #1d4ed8; }
@@ -33,7 +36,8 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; b
 .match-row { display: flex; align-items: center; padding: 9px 12px; border-bottom: 1px solid #f1f5f9; background: white; gap: 6px; }
 .match-row:hover { background: #f8fafc; }
 
-.match-time { min-width: 50px; text-align: center; font-size: 13px; font-weight: 700; color: #374151; }
+.match-time { min-width: 50px; text-align: center; font-size: 13px; font-weight: 700; color: #374151; display: flex; flex-direction: column; align-items: center; gap: 1px; }
+.venue-mini { font-size: 8px; color: #94a3b8; font-weight: 400; max-width: 52px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; line-height: 1.2; }
 .match-time.live-time { color: #ef4444; }
 .match-time.done-time { color: #9ca3af; font-size: 11px; font-weight: 500; }
 
@@ -94,9 +98,6 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; b
 .bar-count { min-width: 20px; font-weight: 700; color: #374151; }
 .stats-loading { text-align: center; padding: 50px 20px; color: #6b7280; }
 .stats-meta { padding: 6px 12px; background: #f8fafc; border-bottom: 1px solid #e2e8f0; font-size: 11px; color: #6b7280; display: flex; justify-content: space-between; align-items: center; }
-.refresh-btn { background: none; border: 1px solid #cbd5e1; color: #475569; font-size: 11px; padding: 2px 8px; border-radius: 4px; cursor: pointer; }
-.refresh-btn:hover { background: #f1f5f9; }
-
 /* Match events (goals/cards inline) */
 .match-wrap { background: white; border-bottom: 1px solid #f1f5f9; }
 .match-wrap:hover { background: #f8fafc; }
@@ -134,23 +135,103 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; b
 .gd-pos { color: #16a34a; font-weight: 700; }
 .gd-neg { color: #dc2626; font-weight: 700; }
 .gd-zero { color: #6b7280; }
+
+/* Group nav */
+#group-nav-bar { background: white; border-bottom: 1px solid #e2e8f0; padding: 5px 10px; display: flex; gap: 4px; flex-wrap: wrap; position: sticky; top: 0; z-index: 6; }
+.gnav-btn { background: #f1f5f9; border: none; color: #374151; font-size: 11px; font-weight: 700; padding: 3px 8px; border-radius: 4px; cursor: pointer; }
+.gnav-btn:hover { background: #dbeafe; color: #1d4ed8; }
+
+/* Top-3 scorers widget on Today */
+.top3-widget { display: flex; gap: 8px; padding: 8px 12px; background: #f8fafc; border-bottom: 1px solid #e2e8f0; overflow-x: auto; scrollbar-width: none; }
+.top3-widget::-webkit-scrollbar { display: none; }
+.top3-item { display: flex; align-items: center; gap: 5px; background: white; border: 1px solid #e2e8f0; border-radius: 8px; padding: 5px 9px; white-space: nowrap; font-size: 11px; flex-shrink: 0; }
+.top3-item .t3-goals { font-size: 14px; font-weight: 800; color: #111827; }
+.top3-item .t3-name { font-weight: 600; color: #374151; }
+.top3-item .t3-team { font-size: 10px; color: #9ca3af; }
+
+/* Credit link */
+.header-credit { font-size: 10px; opacity: 0.65; margin-top: 2px; }
+.header-credit a { color: white; text-decoration: none; }
+.header-credit a:hover { opacity: 0.9; text-decoration: underline; }
+
+/* Dark toggle */
+#dark-toggle { position: absolute; right: 12px; top: 50%; transform: translateY(-50%); background: rgba(255,255,255,0.15); border: none; color: white; font-size: 15px; width: 30px; height: 30px; border-radius: 50%; cursor: pointer; display: flex; align-items: center; justify-content: center; }
+#dark-toggle:hover { background: rgba(255,255,255,0.25); }
+.header { position: relative; }
+
+/* Dark theme */
+body.dark { background: #0f172a; color: #f1f5f9; }
+body.dark .status-bar { background: #1e293b; border-color: #334155; color: #94a3b8; }
+body.dark .tabs, body.dark .tabs-shadow::after { background: #1e293b; }
+body.dark .tabs-shadow::after { background: linear-gradient(to right, transparent, #1e293b); }
+body.dark .tab { color: #94a3b8; }
+body.dark .tab.active { color: #60a5fa; border-bottom-color: #60a5fa; }
+body.dark .tab:hover { color: #93c5fd; }
+body.dark .day-header { background: #1e293b; border-color: #334155; color: #60a5fa; }
+body.dark .match-row { background: #1e293b; border-color: #334155; }
+body.dark .match-row:hover { background: #263548; }
+body.dark .match-wrap { background: #1e293b; border-color: #334155; }
+body.dark .match-wrap:hover { background: #263548; }
+body.dark .team-name { color: #f1f5f9; }
+body.dark .score-num { color: #f1f5f9; }
+body.dark .score-sep { color: #94a3b8; }
+body.dark .score-vs { color: #64748b; }
+body.dark .match-time { color: #cbd5e1; }
+body.dark .match-time.done-time { color: #64748b; }
+body.dark .match-time.countdown-time { color: #60a5fa; }
+body.dark .venue-mini { color: #475569; }
+body.dark .group-card { background: #1e293b; border-color: #334155; }
+body.dark .group-tbl th { background: #263548; color: #94a3b8; border-color: #334155; }
+body.dark .group-tbl td { border-color: #334155; color: #e2e8f0; }
+body.dark .row-q { background: #0f2b1a; }
+body.dark .row-p { background: #2a230a; }
+body.dark .row-q.team-highlight, body.dark .row-p.team-highlight { background: #1a2a3f; }
+body.dark .pts-bold { color: #f1f5f9; }
+body.dark .gd-zero { color: #64748b; }
+body.dark .ko-round-title { background: #1a1040; border-color: #3b2d70; color: #a78bfa; }
+body.dark .legend { background: #1e293b; border-color: #334155; color: #94a3b8; }
+body.dark .ev-home, body.dark .ev-away { color: #cbd5e1; }
+body.dark .events-grid { border-color: #334155; }
+body.dark .ev-home { border-color: #334155; }
+body.dark .stats-card { background: #1e293b; border-color: #334155; }
+body.dark .stats-tbl td { border-color: #334155; color: #e2e8f0; }
+body.dark .bar-track { background: #334155; }
+body.dark .stats-meta { background: #263548; border-color: #334155; color: #94a3b8; }
+body.dark .stats-loading { color: #94a3b8; }
+body.dark #filter-bar { background: #1a2a3f; border-color: #2d4a6f; }
+body.dark .filter-clear { border-color: #2d4a6f; color: #60a5fa; }
+body.dark .filter-clear:hover { background: #1e3a5f; }
+body.dark .match-row.team-highlight { background: #1a2a3f !important; }
+body.dark .empty { color: #64748b; }
+body.dark #group-nav-bar { background: #1e293b; border-color: #334155; }
+body.dark .gnav-btn { background: #334155; color: #cbd5e1; }
+body.dark .gnav-btn:hover { background: #1e3a5f; color: #60a5fa; }
+body.dark .top3-widget { background: #1a2030; border-color: #334155; }
+body.dark .top3-item { background: #1e293b; border-color: #334155; }
+body.dark .top3-item .t3-goals { color: #f1f5f9; }
+body.dark .top3-item .t3-name { color: #cbd5e1; }
+body.dark .top3-item .t3-team { color: #64748b; }
 </style>
 </head>
 <body>
 <div class="header">
+  <button id="dark-toggle" onclick="toggleDark()" title="Темна тема">🌙</button>
   <h1>⚽ ЧЕМПІОНАТ СВІТУ 2026</h1>
   <p>Канада · Мексика · США &nbsp;|&nbsp; 11 черв – 19 лип &nbsp;|&nbsp; Київ: <span id="clock">--:--</span></p>
+  <div class="header-credit">Зроблено <a href="https://github.com/Krymets" target="_blank" rel="noopener">@Krymets</a></div>
 </div>
 <div class="status-bar">
   <span><span class="live-dot"></span>Автооновлення кожну хвилину · UTC+3</span>
   <span id="last-updated">Завантаження...</span>
 </div>
+<div class="tabs-shadow">
 <div class="tabs">
   <div class="tab active" onclick="showPage('today')">📅 Сьогодні</div>
   <div class="tab" onclick="showPage('schedule')">📋 Розклад</div>
   <div class="tab" onclick="showPage('groups')">🏆 Групи</div>
   <div class="tab" onclick="showPage('knockout')">⚡ Плей-офф</div>
   <div class="tab" onclick="showPage('stats')">📊 Статистика</div>
+</div>
 </div>
 <div id="filter-bar">
   <span id="filter-label"></span>
@@ -159,7 +240,7 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; b
 <div id="toast"></div>
 <div id="today-page" class="page active"><div id="today-content"></div></div>
 <div id="schedule-page" class="page"><div id="schedule-content"></div></div>
-<div id="groups-page" class="page"><div id="groups-content"></div></div>
+<div id="groups-page" class="page"><div id="group-nav-bar"></div><div id="groups-content"></div></div>
 <div id="knockout-page" class="page"><div id="knockout-content"></div></div>
 <div id="stats-page" class="page"><div id="stats-content"></div></div>
 
@@ -450,22 +531,23 @@ function mRow(m, countdown=false) {
   const st = mStatus(m);
   const sc = SC[m.id];
 
+  const venue = m.v ? `<span class="venue-mini">${m.v.split(',')[0]}</span>` : '';
   let tHtml;
   if (st==='live') {
-    tHtml = `<div class="match-time live-time"><span class="live-badge">⚽ LIVE</span></div>`;
+    tHtml = `<div class="match-time live-time"><span class="live-badge">⚽ LIVE</span>${venue}</div>`;
   } else if (st==='done') {
-    tHtml = `<div class="match-time done-time">Кінець</div>`;
+    tHtml = `<div class="match-time done-time"><span>Кінець</span>${venue}</div>`;
   } else if (countdown) {
     const diff = new Date(m.u).getTime() - Date.now();
     if (diff > 0 && diff < 24*3600000) {
       const h = Math.floor(diff/3600000), mn = Math.floor((diff%3600000)/60000);
       const txt = h > 0 ? `${h}г ${mn}хв` : `${mn} хв`;
-      tHtml = `<div class="match-time countdown-time" data-kickoff="${m.u}">${txt}</div>`;
+      tHtml = `<div class="match-time countdown-time" data-kickoff="${m.u}"><span>${txt}</span>${venue}</div>`;
     } else {
-      tHtml = `<div class="match-time">${kTime(m.u)}</div>`;
+      tHtml = `<div class="match-time"><span>${kTime(m.u)}</span>${venue}</div>`;
     }
   } else {
-    tHtml = `<div class="match-time">${kTime(m.u)}</div>`;
+    tHtml = `<div class="match-time"><span>${kTime(m.u)}</span>${venue}</div>`;
   }
 
   const matchTeams = m.g ? [m.h, m.a] : [];
@@ -504,28 +586,65 @@ function mRow(m, countdown=false) {
   return `<div class="match-row${rowClass}">${tHtml}${body}<div class="match-badge">${badge}</div></div>`;
 }
 
+let _todayScrolled = false;
+
+function top3Html() {
+  const scorers = {};
+  Object.keys(ME).forEach(id => {
+    const m = M.find(x => x.id === +id); if (!m) return;
+    ME[id].forEach(e => {
+      if (e.type !== 'goal' || !e.player) return;
+      if (!scorers[e.player]) scorers[e.player] = {g:0, team:e.team};
+      scorers[e.player].g++;
+    });
+  });
+  const top = Object.entries(scorers).sort((a,b)=>b[1].g-a[1].g).slice(0,5);
+  if (!top.length) return '';
+  const items = top.map(([name,d]) => {
+    const last = name.split(' ').slice(-1)[0];
+    return `<div class="top3-item"><span>${T(d.team).f}</span><span class="t3-goals">${d.g}</span><div><div class="t3-name">${last}</div><div class="t3-team">${T(d.team).n}</div></div></div>`;
+  }).join('');
+  return `<div class="top3-widget">⚽&nbsp;<b style="font-size:11px;color:#64748b;align-self:center">Бомбардири</b>${items}</div>`;
+}
+
 // ===================== PAGES =====================
 function rToday() {
   const tk = todayKey();
   const tms = M.filter(m => kDateKey(m.u)===tk);
-  const tmk = kDateKey(new Date(Date.now()+86400000).toISOString());
-  const tomorrowMs = M.filter(m => kDateKey(m.u)===tmk);
   let h = '';
+
+  const t3 = top3Html();
+  if (t3) h += t3;
+
   if (tms.length) {
     h += `<div class="day-header">🗓 Сьогодні — ${kDateStr(tms[0].u)}</div>`;
     tms.forEach(m => h += mRow(m, true));
   } else {
-    h += `<div class="empty"><div class="icon">📅</div><p>Сьогодні матчів немає</p></div>`;
+    const now = Date.now();
+    const next = M.find(m => new Date(m.u).getTime() > now);
+    if (next) {
+      const nextKey = kDateKey(next.u);
+      const nextMs = M.filter(m => kDateKey(m.u) === nextKey);
+      h += `<div class="empty"><div class="icon">📅</div><p>Сьогодні матчів немає</p></div>`;
+      h += `<div class="day-header">⏭ Наступні матчі — ${kDateStr(next.u)}</div>`;
+      nextMs.forEach(m => h += mRow(m, true));
+    }
   }
-  if (tomorrowMs.length) {
-    h += `<div class="day-header">➡️ Завтра — ${kDateStr(tomorrowMs[0].u)}</div>`;
-    tomorrowMs.forEach(m => h += mRow(m, true));
+
+  const cont = document.getElementById('today-content');
+  cont.innerHTML = h || `<div class="empty"><div class="icon">⚽</div><p>Чемпіонат завершено</p></div>`;
+
+  if (!_todayScrolled) {
+    _todayScrolled = true;
+    requestAnimationFrame(() => {
+      const live = cont.querySelector('.live-time, [data-kickoff]');
+      if (live) live.closest('.match-row, .match-wrap')?.scrollIntoView({behavior:'smooth', block:'start'});
+    });
   }
-  document.getElementById('today-content').innerHTML = h || `<div class="empty"><div class="icon">⚽</div><p>Чемпіонат завершено</p></div>`;
 }
 
 function rSchedule() {
-  const src = filterTeam ? M.filter(m => !m.g || m.h===filterTeam || m.a===filterTeam) : M;
+  const src = filterTeam ? M.filter(m => m.g && (m.h===filterTeam || m.a===filterTeam)) : M;
   const bd = {};
   src.forEach(m => { const k=kDateKey(m.u); (bd[k]=bd[k]||[]).push(m); });
   let h = '';
@@ -573,15 +692,20 @@ function rGroups() {
     return `<span class="gd-zero">0</span>`;
   }
 
+  const letters = Object.keys(GROUPS).sort();
+  document.getElementById('group-nav-bar').innerHTML = letters.map(g =>
+    `<button class="gnav-btn" onclick="scrollToGroup('${g}')">${g}</button>`
+  ).join('');
+
   let h = '<div class="groups-grid">';
-  Object.keys(GROUPS).sort().forEach(g => {
+  letters.forEach(g => {
     const sorted = [...GROUPS[g]].sort((a,b) => {
       const sa=st[g][a],sb=st[g][b];
       if (sb.Pts!==sa.Pts) return sb.Pts-sa.Pts;
       const da=sa.GF-sa.GA, db=sb.GF-sb.GA;
       return db!==da ? db-da : sb.GF-sa.GF;
     });
-    h += `<div class="group-card"><div class="group-card-title">⚽ Група ${g}</div><table class="group-tbl"><thead><tr><th>Команда</th><th>М</th><th>В</th><th>Н</th><th>П</th><th>Г</th><th>±</th><th>О</th></tr></thead><tbody>`;
+    h += `<div class="group-card" id="group-${g}"><div class="group-card-title">⚽ Група ${g}</div><table class="group-tbl"><thead><tr><th>Команда</th><th>М</th><th>В</th><th>Н</th><th>П</th><th>Г</th><th>±</th><th>О</th></tr></thead><tbody>`;
     sorted.forEach((t,i) => {
       const tm=T(t), s=st[g][t];
       const gd=s.GF-s.GA;
@@ -609,6 +733,20 @@ function rKnockout() {
     ms.forEach(m => h += mRow(m));
   });
   document.getElementById('knockout-content').innerHTML = h;
+}
+
+// Dark theme
+function toggleDark() {
+  document.body.classList.toggle('dark');
+  const isDark = document.body.classList.contains('dark');
+  document.getElementById('dark-toggle').textContent = isDark ? '☀️' : '🌙';
+  localStorage.setItem('wc_dark', isDark ? '1' : '0');
+}
+
+// Group scroll navigation
+function scrollToGroup(g) {
+  const el = document.getElementById('group-' + g);
+  if (el) el.scrollIntoView({behavior: 'smooth', block: 'start'});
 }
 
 // Team filter
@@ -850,6 +988,44 @@ function rStats() {
   });
   chart += '</div>';
 
+  // Team goals & clean sheets from SC (more reliable than event counts)
+  const teamGoals = {}, teamConceded = {}, teamMatches = {};
+  M.filter(m => m.g && SC[m.id]).forEach(m => {
+    const s = SC[m.id];
+    const hg = parseInt(s.h)||0, ag = parseInt(s.a)||0;
+    teamGoals[m.h] = (teamGoals[m.h]||0) + hg;
+    teamGoals[m.a] = (teamGoals[m.a]||0) + ag;
+    teamConceded[m.h] = (teamConceded[m.h]||0) + ag;
+    teamConceded[m.a] = (teamConceded[m.a]||0) + hg;
+    teamMatches[m.h] = (teamMatches[m.h]||0) + 1;
+    teamMatches[m.a] = (teamMatches[m.a]||0) + 1;
+  });
+
+  const sortedTeamGoals = Object.entries(teamGoals).filter(([,g])=>g>0).sort((a,b)=>b[1]-a[1]).slice(0,10);
+  const maxTG = Math.max(...sortedTeamGoals.map(([,g])=>g), 1);
+  let teamChart = '<div class="bar-chart">';
+  sortedTeamGoals.forEach(([code, g]) => {
+    const pct = Math.round(g/maxTG*100);
+    const t = T(code);
+    teamChart += `<div class="bar-row"><div class="bar-label" style="min-width:26px">${t.f}</div><div class="bar-track"><div class="bar-fill" style="width:${pct}%"></div></div><div class="bar-count">${g}</div></div>`;
+  });
+  teamChart += '</div>';
+
+  const cleanTeams = Object.keys(teamMatches).filter(c => teamConceded[c] === 0 && teamMatches[c] > 0);
+  let cleanHtml = '';
+  if (cleanTeams.length) {
+    cleanHtml = '<table class="stats-tbl">';
+    cleanTeams.sort((a,b) => (teamMatches[b]||0)-(teamMatches[a]||0)).forEach((c,i) => {
+      const t = T(c);
+      cleanHtml += `<tr><td style="color:#9ca3af;font-weight:700;width:22px">${i+1}</td>
+        <td><div style="font-weight:600;font-size:12px">${t.f} ${t.n}</div><div style="font-size:10px;color:#6b7280">${teamMatches[c]} матч${teamMatches[c]>1?'ів':''}</div></td>
+        <td style="text-align:right;font-size:15px;font-weight:800">🧤&nbsp;0</td></tr>`;
+    });
+    cleanHtml += '</table>';
+  } else {
+    cleanHtml = '<div style="padding:10px 12px;font-size:12px;color:#9ca3af">Поки немає даних</div>';
+  }
+
   const doneCount = completedIds.filter(id => ME[id] && SC[id]?.done).length;
   const liveCount = completedIds.filter(id => ME[id] && SC[id]?.live).length;
   const metaText = liveCount
@@ -862,6 +1038,8 @@ function rStats() {
   h += `<div class="stats-card"><div class="stats-card-title">🟨 Жовті картки</div>${playerRows(yellows,'cards','🟨')}</div>`;
   if (Object.keys(reds).length) h += `<div class="stats-card"><div class="stats-card-title">🟥 Червоні картки</div>${playerRows(reds,'cards','🟥')}</div>`;
   h += `<div class="stats-card"><div class="stats-card-title">⏱ Голи по хвилинах</div>${chart}</div>`;
+  if (sortedTeamGoals.length) h += `<div class="stats-card"><div class="stats-card-title">🏴 Голи по командах</div>${teamChart}</div>`;
+  h += `<div class="stats-card"><div class="stats-card-title">🧤 Чисті аркуші</div>${cleanHtml}</div>`;
   h += '</div>';
   document.getElementById('stats-content').innerHTML = h;
 }
@@ -896,8 +1074,23 @@ function tickClock() {
   });
 }
 
+// ===================== SMART POLLING =====================
+function shouldFetchNow() {
+  const now = Date.now();
+  const PRE  = 30 * 60000;   // 30 min before kickoff
+  const POST = 180 * 60000;  // 150 min match + 30 min buffer
+  return M.some(m => {
+    const start = new Date(m.u).getTime();
+    return now >= start - PRE && now <= start + POST;
+  });
+}
+
 // ===================== INIT =====================
 async function init() {
+  if (localStorage.getItem('wc_dark') === '1') {
+    document.body.classList.add('dark');
+    document.getElementById('dark-toggle').textContent = '☀️';
+  }
   meLoad();
   scLoad();
   tickClock();
@@ -905,7 +1098,7 @@ async function init() {
   render('today'); rSchedule(); rGroups(); rKnockout();
   await fbLoad();
   await fetchScores();
-  setInterval(fetchScores, 60000);
+  setInterval(() => { if (shouldFetchNow()) fetchScores(); }, 60000);
 }
 
 if (document.readyState !== 'loading') init();
