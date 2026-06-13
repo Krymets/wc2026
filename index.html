@@ -141,20 +141,20 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; b
 .gnav-btn { background: #f1f5f9; border: none; color: #374151; font-size: 11px; font-weight: 700; padding: 3px 8px; border-radius: 4px; cursor: pointer; }
 .gnav-btn:hover { background: #dbeafe; color: #1d4ed8; }
 
-/* Top-3 scorers widget on Today */
-.top3-header { padding: 7px 12px 0; font-size: 10px; color: #6b7280; font-weight: 700; background: #f8fafc; letter-spacing: 0.5px; text-transform: uppercase; }
-.top3-widget { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; padding: 6px 12px 8px; background: #f8fafc; border-bottom: 1px solid #e2e8f0; }
-.top3-item { display: flex; flex-direction: column; align-items: center; background: white; border: 1px solid #e2e8f0; border-radius: 8px; padding: 7px 4px 6px; text-align: center; }
-.top3-item .t3-medal { font-size: 14px; line-height: 1; }
-.top3-item .t3-goals { font-size: 18px; font-weight: 800; color: #111827; line-height: 1.1; }
-.top3-item .t3-name { font-size: 10px; font-weight: 600; color: #374151; margin: 2px 0 1px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 90px; }
-.top3-item .t3-flag { font-size: 13px; }
+/* Top scorers widget on Today */
+.top3-widget { display: flex; gap: 8px; padding: 8px 12px; background: #f8fafc; border-bottom: 1px solid #e2e8f0; overflow-x: auto; scrollbar-width: none; align-items: center; }
+.top3-widget::-webkit-scrollbar { display: none; }
+.top3-item { display: flex; align-items: center; gap: 5px; background: white; border: 1px solid #e2e8f0; border-radius: 8px; padding: 5px 9px; white-space: nowrap; font-size: 11px; flex-shrink: 0; }
+.top3-item .t3-goals { font-size: 14px; font-weight: 800; color: #111827; }
+.top3-item .t3-name { font-weight: 600; color: #374151; }
+.top3-item .t3-team { font-size: 10px; color: #9ca3af; }
 
 /* Stamp */
 .header-stamp { position: absolute; left: 10px; top: 8px; width: 44px; height: 44px; border-radius: 50%; border: 2px dashed rgba(255,255,255,0.5); display: flex; flex-direction: column; align-items: center; justify-content: center; text-decoration: none; color: rgba(255,255,255,0.65); font-size: 6.5px; font-weight: 800; letter-spacing: 0.8px; text-transform: uppercase; line-height: 1.2; text-align: center; transition: border-color 0.2s, color 0.2s; }
 .header-stamp:hover { border-color: rgba(255,255,255,0.9); color: white; }
-.header-stamp .stamp-by { font-size: 5.5px; letter-spacing: 1px; opacity: 0.8; }
-.header-stamp .stamp-name { font-size: 8px; letter-spacing: 0.5px; }
+.header-stamp .stamp-inner { display: flex; flex-direction: column; align-items: center; transform: rotate(-30deg); line-height: 1.3; }
+.header-stamp .stamp-by { font-size: 5px; letter-spacing: 1px; opacity: 0.8; }
+.header-stamp .stamp-name { font-size: 7px; letter-spacing: 0px; }
 
 /* Dark toggle */
 #dark-toggle { position: absolute; right: 10px; top: 8px; background: rgba(255,255,255,0.15); border: none; color: white; font-size: 15px; width: 30px; height: 30px; border-radius: 50%; cursor: pointer; display: flex; align-items: center; justify-content: center; }
@@ -208,16 +208,16 @@ body.dark .empty { color: #64748b; }
 body.dark #group-nav-bar { background: #1e293b; border-color: #334155; }
 body.dark .gnav-btn { background: #334155; color: #cbd5e1; }
 body.dark .gnav-btn:hover { background: #1e3a5f; color: #60a5fa; }
-body.dark .top3-header { background: #1a2030; color: #64748b; }
 body.dark .top3-widget { background: #1a2030; }
 body.dark .top3-item { background: #1e293b; border-color: #334155; }
 body.dark .top3-item .t3-goals { color: #f1f5f9; }
 body.dark .top3-item .t3-name { color: #cbd5e1; }
+body.dark .top3-item .t3-team { color: #64748b; }
 </style>
 </head>
 <body>
 <div class="header">
-  <a href="https://github.com/Krymets" class="header-stamp" target="_blank" rel="noopener"><span class="stamp-by">by</span><span class="stamp-name">Krymets</span></a>
+  <a href="https://github.com/Krymets" class="header-stamp" target="_blank" rel="noopener"><span class="stamp-inner"><span class="stamp-by">by</span><span class="stamp-name">Krymets</span></span></a>
   <button id="dark-toggle" onclick="toggleDark()" title="Темна тема">🌙</button>
   <h1>⚽ ЧЕМПІОНАТ СВІТУ 2026</h1>
   <p>Канада · Мексика · США &nbsp;|&nbsp; 11 черв – 19 лип &nbsp;|&nbsp; Київ: <span id="clock">--:--</span></p>
@@ -600,14 +600,13 @@ function top3Html() {
       scorers[e.player].g++;
     });
   });
-  const top = Object.entries(scorers).sort((a,b)=>b[1].g-a[1].g).slice(0,3);
+  const top = Object.entries(scorers).sort((a,b)=>b[1].g-a[1].g).slice(0,5);
   if (!top.length) return '';
-  const medals = ['🥇','🥈','🥉'];
-  const items = top.map(([name,d], i) => {
+  const items = top.map(([name,d]) => {
     const last = name.split(' ').slice(-1)[0];
-    return `<div class="top3-item"><div class="t3-medal">${medals[i]}</div><div class="t3-goals">${d.g}</div><div class="t3-name">${last}</div><div class="t3-flag">${T(d.team).f}</div></div>`;
+    return `<div class="top3-item"><span>${T(d.team).f}</span><span class="t3-goals">${d.g}</span><div><div class="t3-name">${last}</div><div class="t3-team">${T(d.team).n}</div></div></div>`;
   }).join('');
-  return `<div class="top3-header">⚽ Бомбардири</div><div class="top3-widget">${items}</div>`;
+  return `<div class="top3-widget">⚽&nbsp;<b style="font-size:11px;color:#64748b;flex-shrink:0">Бомбардири</b>${items}</div>`;
 }
 
 // ===================== PAGES =====================
