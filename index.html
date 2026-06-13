@@ -412,7 +412,7 @@ async function fbLoad() {
     const [sr, mr] = await Promise.all([fetch(`${FB_URL}/sc.json`), fetch(`${FB_URL}/me.json`)]);
     let changed = false;
     if (sr.ok) { const d=await sr.json(); if (d) { Object.assign(SC, d); localStorage.setItem(SC_KEY, JSON.stringify(SC)); changed=true; } }
-    if (mr.ok) { const d=await mr.json(); if (d) { Object.assign(ME, d); localStorage.setItem(ME_KEY, JSON.stringify(ME)); changed=true; } }
+    if (mr.ok) { const d=await mr.json(); if (d) { fixMinutes(d); Object.assign(ME, d); localStorage.setItem(ME_KEY, JSON.stringify(ME)); changed=true; } }
     if (changed) { render(curPage); rSchedule(); rGroups(); rKnockout(); }
   } catch(e) {}
 }
@@ -781,7 +781,13 @@ function showToast(msg) {
 const ME = {};
 const ME_KEY = 'wc2026_events_v2';
 function meSave() { try { localStorage.setItem(ME_KEY, JSON.stringify(ME)); } catch(e){} fbScheduleSave(); }
-function meLoad() { try { const d=JSON.parse(localStorage.getItem(ME_KEY)||'{}'); Object.assign(ME,d); } catch(e){} }
+function fixMinutes(d) {
+  Object.values(d).forEach(evs => evs.forEach(e => {
+    const pm = (e.minuteStr||'').match(/^(\d+)\+(\d+)$/);
+    if (pm) e.minute = parseInt(pm[1]) + parseInt(pm[2]);
+  }));
+}
+function meLoad() { try { const d=JSON.parse(localStorage.getItem(ME_KEY)||'{}'); fixMinutes(d); Object.assign(ME,d); } catch(e){} }
 
 function teamFromDisplayName(displayName) {
   if (!displayName) return null;
