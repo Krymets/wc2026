@@ -592,8 +592,6 @@ async function fetchMatchSummary(espnId, matchId, homeCode, awayCode) {
     const data = await r.json();
     ME[matchId] = parseEvents(data, homeCode, awayCode);
     meSave();
-    render(curPage);
-    if (curPage === 'stats') rStats();
   } catch(e) {}
 }
 
@@ -648,13 +646,13 @@ async function fetchScores() {
     });
   }
 
+  if (toFetch.length) {
+    await Promise.all(toFetch.map(item => fetchMatchSummary(item.espnId, item.matchId, item.h, item.a)));
+  }
+
   document.getElementById('last-updated').textContent =
     `${anyEvents?'Оновлено':'Перевірено'} о ${new Date().toLocaleTimeString('uk-UA')}`;
   if (anyEvents) { rToday(); rSchedule(); rGroups(); rKnockout(); if (curPage==='stats') rStats(); }
-
-  for (const item of toFetch) {
-    fetchMatchSummary(item.espnId, item.matchId, item.h, item.a);
-  }
 }
 
 // ===================== STATS =====================
@@ -778,15 +776,15 @@ function tickClock() {
 }
 
 // ===================== INIT =====================
-function init() {
+async function init() {
   meLoad();
   scLoad();
   tickClock();
   setInterval(tickClock, 1000);
   render('today'); rSchedule(); rGroups(); rKnockout();
-  fetchScores();
+  await fbLoad();
+  await fetchScores();
   setInterval(fetchScores, 60000);
-  fbLoad();
 }
 
 if (document.readyState !== 'loading') init();
