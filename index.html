@@ -769,7 +769,7 @@ function mRow(m, countdown=false) {
       <div class="score-center">${sc_html}</div>
       <div class="team-side team-away"><span class="team-flag" onclick="toggleFilter('${m.a}');event.stopPropagation()">${at.f}</span><span class="team-name" onclick="showTeamCard('${m.a}');event.stopPropagation()">${at.n}</span></div>
     </div>`;
-    badge = `<span class="group-badge">${L('group')[0]}.${m.g}</span>`;
+    badge = `<span class="group-badge">${m.g}</span>`;
   } else {
     body = `<div class="teams-block" style="justify-content:center;font-size:13px;font-weight:600;color:#374151;gap:0">${m.l}</div>`;
     badge = m.r==='final' ? `<span class="final-badge">Фінал</span>` : `<span class="round-badge">${roundName(m.r)}</span>`;
