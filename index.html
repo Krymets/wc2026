@@ -608,13 +608,25 @@ function updateFilterBar() {
 }
 
 // ===================== NOTIFICATIONS =====================
+let notifEnabled = localStorage.getItem('wc_notif') !== 'off';
+function updateNotifBtn() {
+  const on = Notification?.permission === 'granted' && notifEnabled;
+  document.getElementById('notif-btn').textContent = on ? '🔔' : '🔕';
+}
 async function requestNotif() {
   if (!('Notification' in window)) return alert('Браузер не підтримує сповіщення');
-  const perm = await Notification.requestPermission();
-  document.getElementById('notif-btn').textContent = perm === 'granted' ? '🔔' : '🔕';
+  if (Notification.permission === 'granted') {
+    notifEnabled = !notifEnabled;
+    localStorage.setItem('wc_notif', notifEnabled ? 'on' : 'off');
+  } else {
+    const perm = await Notification.requestPermission();
+    if (perm === 'granted') notifEnabled = true;
+    localStorage.setItem('wc_notif', notifEnabled ? 'on' : 'off');
+  }
+  updateNotifBtn();
 }
 function sendNotif(msg) {
-  if (Notification.permission === 'granted' && document.hidden) {
+  if (Notification?.permission === 'granted' && notifEnabled && document.hidden) {
     new Notification('⚽ ЧС-2026', {body: msg, icon: 'favicon.svg'});
   }
 }
@@ -1368,9 +1380,7 @@ async function init() {
     document.getElementById('lang-btn').textContent = 'УК';
     document.querySelectorAll('.tab').forEach((t,i) => t.textContent = L('tabs')[i]);
   }
-  // Restore notification icon
-  if (Notification?.permission === 'granted') document.getElementById('notif-btn').textContent = '🔔';
-  else if (Notification?.permission === 'denied') document.getElementById('notif-btn').textContent = '🔕';
+  updateNotifBtn();
   meLoad(); scLoad(); tickClock(); setInterval(tickClock, 1000);
   render('today'); rSchedule(); rGroups(); rKnockout();
   await fbLoad();
