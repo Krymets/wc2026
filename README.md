@@ -8,17 +8,17 @@
 
 ## 🎬 Demo
 
-![Demo – all tabs](docs/demo.gif)
+![Demo – all tabs](docs/demo-en.gif)
 
 ## 📸 Screenshots
 
-| Today (light) | Today (dark) | Schedule |
+| Today (light) | Today (dark) | Schedule (dark) |
 |:---:|:---:|:---:|
-| ![Today light](docs/today-light.png) | ![Today dark](docs/today-dark.png) | ![Schedule dark](docs/schedule-dark.png) |
+| ![Today light](docs/en-today-light.png) | ![Today dark](docs/en-today-dark.png) | ![Schedule dark](docs/en-schedule-dark.png) |
 
 | Groups (light) | Groups (dark) | Knockout | Stats |
 |:---:|:---:|:---:|:---:|
-| ![Groups light](docs/groups-light.png) | ![Groups dark](docs/groups-dark.png) | ![Knockout](docs/knockout-light.png) | ![Stats](docs/stats-light.png) |
+| ![Groups light](docs/en-groups-light.png) | ![Groups dark](docs/en-groups-dark.png) | ![Knockout](docs/en-knockout-light.png) | ![Stats](docs/en-stats-light.png) |
 
 ---
 
@@ -68,17 +68,17 @@
 
 ## 🎬 Демо
 
-![Демо – всі вкладки](docs/demo.gif)
+![Демо – всі вкладки](docs/demo-uk.gif)
 
 ## 📸 Скріншоти
 
-| Сьогодні (світла) | Сьогодні (темна) | Розклад |
+| Сьогодні (світла) | Сьогодні (темна) | Розклад (темна) |
 |:---:|:---:|:---:|
-| ![Today light](docs/today-light.png) | ![Today dark](docs/today-dark.png) | ![Schedule dark](docs/schedule-dark.png) |
+| ![Today light](docs/uk-today-light.png) | ![Today dark](docs/uk-today-dark.png) | ![Schedule dark](docs/uk-schedule-dark.png) |
 
 | Групи (світла) | Групи (темна) | Плей-офф | Статистика |
 |:---:|:---:|:---:|:---:|
-| ![Groups light](docs/groups-light.png) | ![Groups dark](docs/groups-dark.png) | ![Knockout](docs/knockout-light.png) | ![Stats](docs/stats-light.png) |
+| ![Groups light](docs/uk-groups-light.png) | ![Groups dark](docs/uk-groups-dark.png) | ![Knockout](docs/uk-knockout-light.png) | ![Stats](docs/uk-stats-light.png) |
 
 ---
 
