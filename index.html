@@ -1264,7 +1264,7 @@ function rStats() {
     teamMatches[m.a] = (teamMatches[m.a]||0) + 1;
   });
 
-  const sortedTeamGoals = Object.entries(teamGoals).filter(([,g])=>g>0).sort((a,b)=>b[1]-a[1]).slice(0,20);
+  const sortedTeamGoals = Object.entries(teamGoals).filter(([,g])=>g>0).sort((a,b)=>b[1]-a[1]).slice(0,18);
   const maxTG = Math.max(...sortedTeamGoals.map(([,g])=>g), 1);
   let teamChart = '<div class="bar-chart">';
   sortedTeamGoals.forEach(([code, g]) => {
