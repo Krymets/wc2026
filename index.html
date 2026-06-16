@@ -1400,7 +1400,9 @@ async function init() {
     document.querySelectorAll('.tab').forEach((t,i) => t.textContent = L('tabs')[i]);
   }
   updateNotifBtn();
-  meLoad(); scLoad(); tickClock(); setInterval(tickClock, 1000);
+  // Clear stale local cache — always pull fresh from Firebase
+  try { localStorage.removeItem(SC_KEY); localStorage.removeItem(ME_KEY); } catch(e) {}
+  tickClock(); setInterval(tickClock, 1000);
   render('today'); rSchedule(); rGroups(); rKnockout();
   await fbLoad();
   await fetchScores();
