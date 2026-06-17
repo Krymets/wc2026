@@ -1087,6 +1087,8 @@ async function fetchMatchSummary(espnId, matchId, homeCode, awayCode) {
 }
 
 // ===================== LIVE SCORES =====================
+let _historyFetched = false;
+
 async function fetchScores() {
 
   async function fetchDay(date) {
@@ -1097,16 +1099,29 @@ async function fetchScores() {
     } catch(e) { return null; }
   }
 
-  const today      = todayKey().replace(/-/g,'');
-  const yest       = kDateKey(new Date(Date.now()-86400000).toISOString()).replace(/-/g,'');
-  const twoDaysAgo = kDateKey(new Date(Date.now()-2*86400000).toISOString()).replace(/-/g,'');
-  const dates = [...new Set([today, yest, twoDaysAgo])];
+  // On first run: fetch all tournament dates from June 11 to cover historical matches.
+  // On subsequent polls: just today + yesterday for live updates.
+  let dates;
+  if (!_historyFetched) {
+    _historyFetched = true;
+    const start = new Date('2026-06-11T00:00:00Z');
+    const end = new Date();
+    const set = new Set();
+    for (let d = new Date(start); d <= end; d.setUTCDate(d.getUTCDate() + 1)) {
+      set.add(d.toISOString().slice(0,10).replace(/-/g,''));
+    }
+    dates = [...set];
+  } else {
+    const today   = todayKey().replace(/-/g,'');
+    const yest    = kDateKey(new Date(Date.now()-86400000).toISOString()).replace(/-/g,'');
+    dates = [...new Set([today, yest])];
+  }
 
   let anyEvents = false;
   let scChanged = false;
   const toFetch = [];
-  for (const date of dates) {
-    const data = await fetchDay(date);
+  const dayResults = await Promise.all(dates.map(fetchDay));
+  for (const data of dayResults) {
     if (!data?.events?.length) continue;
     anyEvents = true;
     data.events.forEach(ev => {
