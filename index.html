@@ -465,17 +465,6 @@ const SC_KEY = 'wc2026_scores_v1';
 function scSave() { try { localStorage.setItem(SC_KEY, JSON.stringify(SC)); } catch(e){} fbScheduleSave(); }
 function scLoad() { try { const d=JSON.parse(localStorage.getItem(SC_KEY)||'{}'); Object.assign(SC,d); } catch(e){} }
 
-// ===================== FETCH WITH TIMEOUT =====================
-async function fetchT(url, opts={}, ms=7000) {
-  const ctrl = new AbortController();
-  const tid = setTimeout(() => ctrl.abort(), ms);
-  try {
-    const r = await fetch(url, {...opts, signal: ctrl.signal});
-    clearTimeout(tid);
-    return r;
-  } catch(e) { clearTimeout(tid); throw e; }
-}
-
 // ===================== FIREBASE =====================
 const FB_URL = 'https://wc2026-e52a4-default-rtdb.europe-west1.firebasedatabase.app';
 let _fbTimer = null;
@@ -492,7 +481,7 @@ function fbScheduleSave() {
 }
 async function fbLoad() {
   try {
-    const [sr, mr] = await Promise.all([fetchT(`${FB_URL}/sc.json`), fetchT(`${FB_URL}/me.json`)]);
+    const [sr, mr] = await Promise.all([fetch(`${FB_URL}/sc.json`), fetch(`${FB_URL}/me.json`)]);
     let changed = false;
     if (sr.ok) { const d=await sr.json(); if (d) { Object.assign(SC, d); localStorage.setItem(SC_KEY, JSON.stringify(SC)); changed=true; } }
     if (mr.ok) { const d=await mr.json(); if (d) { fixMinutes(d); Object.assign(ME, d); localStorage.setItem(ME_KEY, JSON.stringify(ME)); changed=true; } }
@@ -1089,7 +1078,7 @@ function parseEvents(data, homeCode, awayCode) {
 
 async function fetchMatchSummary(espnId, matchId, homeCode, awayCode) {
   try {
-    const r = await fetchT(`https://site.api.espn.com/apis/site/v2/sports/soccer/FIFA.World/summary?event=${espnId}`);
+    const r = await fetch(`https://site.api.espn.com/apis/site/v2/sports/soccer/FIFA.World/summary?event=${espnId}`, {cache:'no-store'});
     if (!r.ok) return;
     const data = await r.json();
     ME[matchId] = parseEvents(data, homeCode, awayCode);
@@ -1102,7 +1091,7 @@ async function fetchScores() {
 
   async function fetchDay(date) {
     try {
-      const r = await fetchT(`https://site.api.espn.com/apis/site/v2/sports/soccer/FIFA.World/scoreboard?dates=${date}`);
+      const r = await fetch(`https://site.api.espn.com/apis/site/v2/sports/soccer/FIFA.World/scoreboard?dates=${date}`, {cache:'no-store'});
       if (!r.ok) return null;
       return await r.json();
     } catch(e) { return null; }
@@ -1116,8 +1105,8 @@ async function fetchScores() {
   let anyEvents = false;
   let scChanged = false;
   const toFetch = [];
-  const dayResults = await Promise.all(dates.map(fetchDay));
-  for (const data of dayResults) {
+  for (const date of dates) {
+    const data = await fetchDay(date);
     if (!data?.events?.length) continue;
     anyEvents = true;
     data.events.forEach(ev => {
@@ -1411,9 +1400,7 @@ async function init() {
     document.querySelectorAll('.tab').forEach((t,i) => t.textContent = L('tabs')[i]);
   }
   updateNotifBtn();
-  // Clear stale local cache — always pull fresh from Firebase
-  try { localStorage.removeItem(SC_KEY); localStorage.removeItem(ME_KEY); } catch(e) {}
-  tickClock(); setInterval(tickClock, 1000);
+  meLoad(); scLoad(); tickClock(); setInterval(tickClock, 1000);
   render('today'); rSchedule(); rGroups(); rKnockout();
   await fbLoad();
   await fetchScores();
