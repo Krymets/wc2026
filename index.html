@@ -461,7 +461,7 @@ function matchLabel(m) {
 // Scores cache
 let SC = {};
 let prevSC = {};
-const SC_KEY = 'wc2026_scores_v1';
+const SC_KEY = 'wc2026_scores_v2';
 function scSave() { try { localStorage.setItem(SC_KEY, JSON.stringify(SC)); } catch(e){} fbScheduleSave(); }
 function scLoad() { try { const d=JSON.parse(localStorage.getItem(SC_KEY)||'{}'); Object.assign(SC,d); } catch(e){} }
 
@@ -1018,7 +1018,7 @@ function showToast(msg) {
 
 // Match Events cache: {matchId: [{type,player,team,minute,minuteStr,assist,pen}]}
 const ME = {};
-const ME_KEY = 'wc2026_events_v2';
+const ME_KEY = 'wc2026_events_v3';
 function meSave() { try { localStorage.setItem(ME_KEY, JSON.stringify(ME)); } catch(e){} fbScheduleSave(); }
 function fixMinutes(d) {
   Object.values(d).forEach(evs => evs.forEach(e => {
