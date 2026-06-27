@@ -465,6 +465,12 @@ const SC_KEY = 'wc2026_scores_v2';
 function scSave() { try { localStorage.setItem(SC_KEY, JSON.stringify(SC)); } catch(e){} fbScheduleSave(); }
 function scLoad() { try { const d=JSON.parse(localStorage.getItem(SC_KEY)||'{}'); Object.assign(SC,d); } catch(e){} }
 
+// Knockout bracket team cache: {matchId: {h: teamCode, a: teamCode}}
+let KB = {};
+const KB_KEY = 'wc2026_kb_v1';
+function kbSave() { try { localStorage.setItem(KB_KEY, JSON.stringify(KB)); } catch(e){} fbScheduleSave(); }
+function kbLoad() { try { const d=JSON.parse(localStorage.getItem(KB_KEY)||'{}'); Object.assign(KB,d); } catch(e){} }
+
 // ===================== FIREBASE =====================
 const FB_URL = 'https://wc2026-e52a4-default-rtdb.europe-west1.firebasedatabase.app';
 let _fbTimer = null;
@@ -474,17 +480,19 @@ function fbScheduleSave() {
     try {
       await Promise.all([
         fetch(`${FB_URL}/sc.json`, {method:'PUT', headers:{'Content-Type':'application/json'}, body:JSON.stringify(SC)}),
-        fetch(`${FB_URL}/me.json`, {method:'PUT', headers:{'Content-Type':'application/json'}, body:JSON.stringify(ME)})
+        fetch(`${FB_URL}/me.json`, {method:'PUT', headers:{'Content-Type':'application/json'}, body:JSON.stringify(ME)}),
+        fetch(`${FB_URL}/kb.json`, {method:'PUT', headers:{'Content-Type':'application/json'}, body:JSON.stringify(KB)})
       ]);
     } catch(e) {}
   }, 3000);
 }
 async function fbLoad() {
   try {
-    const [sr, mr] = await Promise.all([fetch(`${FB_URL}/sc.json`), fetch(`${FB_URL}/me.json`)]);
+    const [sr, mr, kbr] = await Promise.all([fetch(`${FB_URL}/sc.json`), fetch(`${FB_URL}/me.json`), fetch(`${FB_URL}/kb.json`)]);
     let changed = false;
     if (sr.ok) { const d=await sr.json(); if (d) { Object.assign(SC, d); localStorage.setItem(SC_KEY, JSON.stringify(SC)); changed=true; } }
     if (mr.ok) { const d=await mr.json(); if (d) { fixMinutes(d); Object.assign(ME, d); localStorage.setItem(ME_KEY, JSON.stringify(ME)); changed=true; } }
+    if (kbr.ok) { const d=await kbr.json(); if (d) { Object.assign(KB, d); localStorage.setItem(KB_KEY, JSON.stringify(KB)); changed=true; } }
     if (changed) { render(curPage); rSchedule(); rGroups(); rKnockout(); }
   } catch(e) {}
 }
@@ -759,7 +767,8 @@ function mRow(m, countdown=false) {
     tHtml = `<div class="match-time"><span>${kTime(m.u)}</span>${venue}</div>`;
   }
 
-  const matchTeams = m.g ? [m.h, m.a] : [];
+  const kb = m.g ? null : (KB[m.id] || null);
+  const matchTeams = m.g ? [m.h, m.a] : (kb ? [kb.h, kb.a].filter(Boolean) : []);
   const isFiltered = filterTeam && matchTeams.includes(filterTeam);
   const isDimmed   = filterTeam && matchTeams.length && !matchTeams.includes(filterTeam);
   const rowClass   = isFiltered ? ' team-highlight' : isDimmed ? ' team-dim' : '';
@@ -789,7 +798,29 @@ function mRow(m, countdown=false) {
     </div>`;
     badge = `<span class="group-badge">${m.g}</span>`;
   } else {
-    body = `<div class="teams-block" style="justify-content:center;font-size:13px;font-weight:600;color:#374151;gap:0">${matchLabel(m)}</div>`;
+    if (kb?.h || kb?.a) {
+      const ht = kb.h ? T(kb.h) : {n:'?',f:'❓'};
+      const at = kb.a ? T(kb.a) : {n:'?',f:'❓'};
+      const dsc = SC[m.id];
+      let sc_html;
+      if (dsc && (dsc.live || dsc.done)) {
+        const isFlash = dsc.flash && Date.now()-dsc.flash<4000;
+        const fCls = isFlash ? ' score-flash' : '';
+        const penLine = (dsc.pen && dsc.done) ? `<div class="pen-score">${L('penStr')} ${dsc.pen.h}:${dsc.pen.a}</div>` : '';
+        sc_html = `<div style="display:flex;flex-direction:column;align-items:center;gap:1px"><div style="display:flex;gap:2px;align-items:center"><span class="score-num${fCls}">${dsc.h}</span><span class="score-sep">:</span><span class="score-num${fCls}">${dsc.a}</span></div>${penLine}</div>`;
+      } else {
+        sc_html = `<span class="score-vs">–</span>`;
+      }
+      const hClick = kb.h ? ` onclick="toggleFilter('${kb.h}');event.stopPropagation()"` : '';
+      const aClick = kb.a ? ` onclick="toggleFilter('${kb.a}');event.stopPropagation()"` : '';
+      body = `<div class="teams-block">
+        <div class="team-side team-home"><span class="team-name">${ht.n}</span><span class="team-flag"${hClick}>${ht.f}</span></div>
+        <div class="score-center">${sc_html}</div>
+        <div class="team-side team-away"><span class="team-flag"${aClick}>${at.f}</span><span class="team-name">${at.n}</span></div>
+      </div>`;
+    } else {
+      body = `<div class="teams-block" style="justify-content:center;font-size:13px;font-weight:600;color:#374151;gap:0">${matchLabel(m)}</div>`;
+    }
     badge = m.r==='final' ? `<span class="final-badge">Фінал</span>` : `<span class="round-badge">${roundName(m.r)}</span>`;
   }
 
@@ -1099,13 +1130,14 @@ async function fetchScores() {
     } catch(e) { return null; }
   }
 
-  // On first run: fetch all tournament dates from June 11 to cover historical matches.
-  // On subsequent polls: just today + yesterday for live updates.
+  // On first run: fetch all tournament dates from June 11 to cover historical matches,
+  // plus up to 8 days ahead to pre-load knockout bracket team assignments.
+  // On subsequent polls: today + yesterday + tomorrow for live updates and next-day bracket.
   let dates;
   if (!_historyFetched) {
     _historyFetched = true;
     const start = new Date('2026-06-11T00:00:00Z');
-    const end = new Date();
+    const end = new Date(Math.min(Date.now() + 8*86400000, new Date('2026-07-19T23:59:00Z').getTime()));
     const set = new Set();
     for (let d = new Date(start); d <= end; d.setUTCDate(d.getUTCDate() + 1)) {
       set.add(d.toISOString().slice(0,10).replace(/-/g,''));
@@ -1114,11 +1146,13 @@ async function fetchScores() {
   } else {
     const today   = todayKey().replace(/-/g,'');
     const yest    = kDateKey(new Date(Date.now()-86400000).toISOString()).replace(/-/g,'');
-    dates = [...new Set([today, yest])];
+    const tom     = kDateKey(new Date(Date.now()+86400000).toISOString()).replace(/-/g,'');
+    dates = [...new Set([today, yest, tom])];
   }
 
   let anyEvents = false;
   let scChanged = false;
+  let kbChanged = false;
   const toFetch = [];
   const dayResults = await Promise.all(dates.map(fetchDay));
   for (const data of dayResults) {
@@ -1132,7 +1166,38 @@ async function fetchScores() {
       const ha = mc(homeC.team?.abbreviation, homeC.team?.displayName);
       const aa = mc(awayC.team?.abbreviation, awayC.team?.displayName);
       const match = M.find(m => m.h===ha && m.a===aa);
-      if (!match) return;
+      if (!match) {
+        // Try to match a knockout match by kickoff time (bracket team resolution)
+        const evKey = (ev.date||'').substring(0,16);
+        const koMatch = M.find(m => !m.g && m.r && m.u.substring(0,16) === evKey);
+        if (koMatch) {
+          // ESPN uses placeholder abbrs like "1L","2J","3RD" for TBD teams — skip those
+          const isPH = abbr => !abbr || /^[123]/.test(abbr);
+          const hCode = !isPH(homeC.team?.abbreviation) ? mc(homeC.team.abbreviation, homeC.team.displayName) : null;
+          const aCode = !isPH(awayC.team?.abbreviation) ? mc(awayC.team.abbreviation, awayC.team.displayName) : null;
+          if (hCode && hCode !== KB[koMatch.id]?.h) { KB[koMatch.id] = {...(KB[koMatch.id]||{}), h:hCode}; kbChanged=true; }
+          if (aCode && aCode !== KB[koMatch.id]?.a) { KB[koMatch.id] = {...(KB[koMatch.id]||{}), a:aCode}; kbChanged=true; }
+          // Capture score if match is live or done
+          const desc = ev.status?.type?.description||'';
+          const live = /In Progress|Half|Extra Time|Overtime/i.test(desc);
+          const done = /Final|Full Time|FT|Post|Ended/i.test(desc);
+          if ((live || done) && KB[koMatch.id]?.h && KB[koMatch.id]?.a) {
+            const newH = homeC.score||'0', newA = awayC.score||'0';
+            const penH = homeC.shootoutScore !== undefined ? String(homeC.shootoutScore) : null;
+            const penA = awayC.shootoutScore !== undefined ? String(awayC.shootoutScore) : null;
+            const penScore = (done && penH !== null && penA !== null && (penH !== '0' || penA !== '0')) ? {h:penH,a:penA} : null;
+            const clockDisp = ev.status?.displayClock || '';
+            const minNum = parseInt(clockDisp.split(':')[0]);
+            const liveMin = (live && !isNaN(minNum) && minNum > 0) ? `${minNum}'` : null;
+            SC[koMatch.id] = {h:newH, a:newA, live:!!live, done:!!done, espnId:ev.id,
+              ...(liveMin && {min:liveMin}),
+              ...(penScore && {pen:penScore})
+            };
+            scChanged = true;
+          }
+        }
+        return;
+      }
       const desc = ev.status?.type?.description||'';
       const live = /In Progress|Half|Extra Time|Overtime/i.test(desc);
       const done = /Final|Full Time|FT|Post|Ended/i.test(desc);
@@ -1174,6 +1239,7 @@ async function fetchScores() {
     });
   }
   if (scChanged) scSave();
+  if (kbChanged) kbSave();
 
   if (toFetch.length) {
     await Promise.all(toFetch.map(item => fetchMatchSummary(item.espnId, item.matchId, item.h, item.a)));
@@ -1415,7 +1481,7 @@ async function init() {
     document.querySelectorAll('.tab').forEach((t,i) => t.textContent = L('tabs')[i]);
   }
   updateNotifBtn();
-  meLoad(); scLoad(); tickClock(); setInterval(tickClock, 1000);
+  meLoad(); scLoad(); kbLoad(); tickClock(); setInterval(tickClock, 1000);
   render('today'); rSchedule(); rGroups(); rKnockout();
   await fbLoad();
   await fetchScores();
