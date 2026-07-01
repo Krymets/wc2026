@@ -1264,14 +1264,18 @@ async function loadAllStats() {
   STATS_LOADING = true;
   document.getElementById('stats-content').innerHTML = `<div class="stats-loading">⚽ ${L('loading')}</div>`;
 
-  const pending = M.filter(m => m.g && SC[m.id]?.espnId && ME[m.id] === undefined);
-  await Promise.all(pending.map(m => fetchMatchSummary(SC[m.id].espnId, m.id, m.h, m.a)));
+  const pending = M.filter(m => SC[m.id]?.espnId && ME[m.id] === undefined && (m.g || (KB[m.id]?.h && KB[m.id]?.a)));
+  await Promise.all(pending.map(m => {
+    const h = m.g ? m.h : KB[m.id].h;
+    const a = m.g ? m.a : KB[m.id].a;
+    return fetchMatchSummary(SC[m.id].espnId, m.id, h, a);
+  }));
   STATS_LOADING = false;
   rStats();
 }
 
 function rStats() {
-  const completedIds = M.filter(m => m.g && (SC[m.id]?.done || SC[m.id]?.live)).map(m => m.id);
+  const completedIds = M.filter(m => (SC[m.id]?.done || SC[m.id]?.live) && (m.g || (KB[m.id]?.h && KB[m.id]?.a))).map(m => m.id);
   const hasSummaries = completedIds.some(id => ME[id]);
 
   if (!hasSummaries) {
@@ -1339,15 +1343,17 @@ function rStats() {
 
   // Team goals & clean sheets from SC (more reliable than event counts)
   const teamGoals = {}, teamConceded = {}, teamMatches = {};
-  M.filter(m => m.g && SC[m.id]).forEach(m => {
+  M.filter(m => SC[m.id] && (m.g || (KB[m.id]?.h && KB[m.id]?.a))).forEach(m => {
     const s = SC[m.id];
     const hg = parseInt(s.h)||0, ag = parseInt(s.a)||0;
-    teamGoals[m.h] = (teamGoals[m.h]||0) + hg;
-    teamGoals[m.a] = (teamGoals[m.a]||0) + ag;
-    teamConceded[m.h] = (teamConceded[m.h]||0) + ag;
-    teamConceded[m.a] = (teamConceded[m.a]||0) + hg;
-    teamMatches[m.h] = (teamMatches[m.h]||0) + 1;
-    teamMatches[m.a] = (teamMatches[m.a]||0) + 1;
+    const mh = m.g ? m.h : KB[m.id].h;
+    const ma = m.g ? m.a : KB[m.id].a;
+    teamGoals[mh] = (teamGoals[mh]||0) + hg;
+    teamGoals[ma] = (teamGoals[ma]||0) + ag;
+    teamConceded[mh] = (teamConceded[mh]||0) + ag;
+    teamConceded[ma] = (teamConceded[ma]||0) + hg;
+    teamMatches[mh] = (teamMatches[mh]||0) + 1;
+    teamMatches[ma] = (teamMatches[ma]||0) + 1;
   });
 
   const sortedTeamGoals = Object.entries(teamGoals).filter(([,g])=>g>0).sort((a,b)=>b[1]-a[1]).slice(0,18);
@@ -1361,11 +1367,13 @@ function rStats() {
   teamChart += '</div>';
 
   const cleanSheetCount = {};
-  M.filter(m => m.g && SC[m.id]).forEach(m => {
+  M.filter(m => SC[m.id] && (m.g || (KB[m.id]?.h && KB[m.id]?.a))).forEach(m => {
     const s = SC[m.id];
     const hg = parseInt(s.h)||0, ag = parseInt(s.a)||0;
-    if (ag === 0) cleanSheetCount[m.h] = (cleanSheetCount[m.h]||0) + 1;
-    if (hg === 0) cleanSheetCount[m.a] = (cleanSheetCount[m.a]||0) + 1;
+    const mh = m.g ? m.h : KB[m.id].h;
+    const ma = m.g ? m.a : KB[m.id].a;
+    if (ag === 0) cleanSheetCount[mh] = (cleanSheetCount[mh]||0) + 1;
+    if (hg === 0) cleanSheetCount[ma] = (cleanSheetCount[ma]||0) + 1;
   });
   const cleanEntries = Object.entries(cleanSheetCount).sort((a,b)=>b[1]-a[1]);
   let cleanHtml = '';
