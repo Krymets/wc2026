@@ -716,14 +716,16 @@ function evAway(e) {
   return `<span style="white-space:nowrap">${evIcon(e)} <b>${evName(e)}</b> ${e.minuteStr}${evSuffix(e)}${evAssist(e)}</span>`;
 }
 
-function mEventsHtml(m) {
+function mEventsHtml(m, hCode, aCode) {
   const evs = ME[m.id];
   if (!evs || !evs.length) return '';
-  const relevant = evs.filter(e => e.team === m.h || e.team === m.a);
+  const h = hCode || m.h;
+  const a = aCode || m.a;
+  const relevant = evs.filter(e => e.team === h || e.team === a);
   if (!relevant.length) return '';
   let rows = '';
   for (const e of relevant) {
-    if (e.team === m.h) {
+    if (e.team === h) {
       rows += `<div class="ev-home">${evHome(e)}</div><div class="ev-away"></div>`;
     } else {
       rows += `<div class="ev-home"></div><div class="ev-away">${evAway(e)}</div>`;
@@ -824,7 +826,7 @@ function mRow(m, countdown=false) {
     badge = m.r==='final' ? `<span class="final-badge">Фінал</span>` : `<span class="round-badge">${roundName(m.r)}</span>`;
   }
 
-  const evHtml = m.g ? mEventsHtml(m) : '';
+  const evHtml = m.g ? mEventsHtml(m) : (kb?.h && kb?.a ? mEventsHtml(m, kb.h, kb.a) : '');
   if (evHtml) {
     return `<div class="match-wrap${wrapDim}" data-mid="${m.id}"><div class="match-row${rowClass}" onclick="toggleMatch(${m.id})">${tHtml}${body}<div class="match-badge">${badge}</div></div>${evHtml}</div>`;
   }
@@ -1194,6 +1196,9 @@ async function fetchScores() {
               ...(penScore && {pen:penScore})
             };
             scChanged = true;
+            if (!ME[koMatch.id] || live) {
+              toFetch.push({matchId: koMatch.id, espnId: ev.id, h: KB[koMatch.id].h, a: KB[koMatch.id].a});
+            }
           }
         }
         return;
