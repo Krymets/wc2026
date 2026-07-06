@@ -1382,7 +1382,9 @@ function rStats() {
     if (ag === 0) cleanSheetCount[mh] = (cleanSheetCount[mh]||0) + 1;
     if (hg === 0) cleanSheetCount[ma] = (cleanSheetCount[ma]||0) + 1;
   });
-  const cleanEntries = Object.entries(cleanSheetCount).sort((a,b)=>b[1]-a[1]);
+  const cleanEntries = Object.entries(cleanSheetCount)
+    .sort((a,b)=> b[1]-a[1] || (teamConceded[a[0]]||0)-(teamConceded[b[0]]||0))
+    .slice(0,10);
   let cleanHtml = '';
   if (cleanEntries.length) {
     cleanHtml = '<table class="stats-tbl">';
