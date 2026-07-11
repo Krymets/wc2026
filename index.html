@@ -438,8 +438,8 @@ const M = [
   {id:99,r:'1/4',l:'Чвертьфінал #3',u:'2026-07-11T21:00:00Z',v:'Hard Rock Stadium'},
   {id:100,r:'1/4',l:'Чвертьфінал #4',u:'2026-07-12T01:00:00Z',v:'Arrowhead Stadium'},
   // Semis
-  {id:101,r:'1/2',l:'Півфінал #1',u:'2026-07-15T19:00:00Z',v:'AT&T Stadium'},
-  {id:102,r:'1/2',l:'Півфінал #2',u:'2026-07-16T19:00:00Z',v:'Mercedes-Benz Stadium'},
+  {id:101,r:'1/2',l:'Півфінал #1',u:'2026-07-14T19:00:00Z',v:'AT&T Stadium'},
+  {id:102,r:'1/2',l:'Півфінал #2',u:'2026-07-15T19:00:00Z',v:'Mercedes-Benz Stadium'},
   // 3rd place
   {id:103,r:'3rd',l:'Матч за 3-є місце',u:'2026-07-18T21:00:00Z',v:'Hard Rock Stadium'},
   // Final
@@ -1205,6 +1205,14 @@ async function fetchScores() {
             scChanged = true;
             if (!ME[koMatch.id] || live) {
               toFetch.push({matchId: koMatch.id, espnId: ev.id, h: KB[koMatch.id].h, a: KB[koMatch.id].a});
+            } else if (!live) {
+              // stale cache: cached events give a different score than API — re-fetch
+              const evScore = scoreFromEvents({id: koMatch.id, h: KB[koMatch.id].h, a: KB[koMatch.id].a});
+              const act = SC[koMatch.id];
+              if (evScore && (evScore.h !== act.h || evScore.a !== act.a)) {
+                delete ME[koMatch.id];
+                toFetch.push({matchId: koMatch.id, espnId: ev.id, h: KB[koMatch.id].h, a: KB[koMatch.id].a});
+              }
             }
           }
         }
